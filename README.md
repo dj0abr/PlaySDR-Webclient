@@ -27,7 +27,9 @@ the software is not useable until the paperwork is done :-)
 Prerequisites:
 ==============
 these libraries are required:
+
 apt-get update
+
 apt-get install libasound2-dev libfftw3-dev libgd3 libgd-dev apache2 sndfile-tools libsndfile1-dev php
 
 additionally the SDRplay driver from the SDRplay Webpage must be installed.
