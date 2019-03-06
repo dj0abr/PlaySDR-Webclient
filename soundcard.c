@@ -46,45 +46,29 @@ void init_soundcard()
     printf("open %s\n\r",sndcard);
 
     if ((err = snd_pcm_open(&playback_handle, sndcard, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
-    {
         printf("please disable playback. cannot open audio device %s (%s)\n", sndcard, snd_strerror(err));
         
-    }
-
-    else if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0) {
+    else if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0)
         printf("please disable playback.cannot allocate hardware parameter structure (%s)\n", snd_strerror(err));
-        
-    }
-
-    else if ((err = snd_pcm_hw_params_any(playback_handle, hw_params)) < 0) {
+    
+    else if ((err = snd_pcm_hw_params_any(playback_handle, hw_params)) < 0)
         printf("please disable playback. cannot initialize hardware parameter structure (%s)\n", snd_strerror(err));
-        
-    }
-
-    else if ((err = snd_pcm_hw_params_set_access(playback_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
+    
+    else if ((err = snd_pcm_hw_params_set_access(playback_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
         printf("please disable playback.cannot set access type (%s)\n", snd_strerror(err));
-        
-    }
-
-    else if ((err = snd_pcm_hw_params_set_format(playback_handle, hw_params, SND_PCM_FORMAT_S16_LE)) < 0) {
+    
+    else if ((err = snd_pcm_hw_params_set_format(playback_handle, hw_params, SND_PCM_FORMAT_S16_LE)) < 0)
         printf("please disable playback.cannot set sample format (%s)\n", snd_strerror(err));
-        
-    }
-
-    else if ((err = snd_pcm_hw_params_set_rate_near(playback_handle, hw_params, &rate, 0)) < 0) {
+    
+    else if ((err = snd_pcm_hw_params_set_rate_near(playback_handle, hw_params, &rate, 0)) < 0)
         printf("please disable playback. cannot set sample rate (%s)\n", snd_strerror(err));
-        
-    }
-
-    else if ((err = snd_pcm_hw_params_set_channels(playback_handle, hw_params, channels)) < 0) {
+    
+    else if ((err = snd_pcm_hw_params_set_channels(playback_handle, hw_params, channels)) < 0)
         printf("please disable playback. cannot set channel count (%s)\n", snd_strerror(err));
-        
-    }
-
-    else if ((err = snd_pcm_hw_params(playback_handle, hw_params)) < 0) {
+    
+    else if ((err = snd_pcm_hw_params(playback_handle, hw_params)) < 0)
         printf("please disable playback. cannot set parameters (%s)\n", snd_strerror(err));
-        
-    }
+    
     else
     {
         snd_pcm_hw_params_free(hw_params);
