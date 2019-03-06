@@ -1,5 +1,5 @@
 /*
-* iqcapture: I/Q sampler and SSB demodulator for WSPR Receivers
+* Web based SDR Client for SDRplay
 * =============================================================
 * Author: DJ0ABR
 *
@@ -24,6 +24,11 @@
 * 
 */
 
-void main()
+#include "soundcard.h"
+
+int main()
 {
+    init_soundcard();
+    
+    return 0;
 }
