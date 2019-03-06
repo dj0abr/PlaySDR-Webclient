@@ -17,3 +17,9 @@ the GUI runs in a browser
 * creating the GUI
 * sending user command via WebSocket to above SDR program
 
+currently I am working with the SDRplay Hardware only.
+But I use 2.4Msamples, so later on this can be compatible for
+i.e. RTL sticks and others.
+
+# this is WORK in PROGRESS
+the software is not useable until the paperwork is done :-)
