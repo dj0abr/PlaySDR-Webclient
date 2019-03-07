@@ -40,6 +40,7 @@
 #include <sys/time.h>
 #include "sampleprocessing.h"
 #include "sdrplay.h"
+#include "waterfall.h"
 #include "fir_table_calc.h"
 
 // the low pass filter is time critical !
@@ -51,10 +52,10 @@ FORCE_INLINE short hsi_fir_filter(short sample);
 FORCE_INLINE void hsq_fir_filter_increment(short sample);
 FORCE_INLINE short hsq_fir_filter(short sample);
 
-#define DOWNRATE        (SDR_SAMPLE_RATE / SAMPLERATE_480k) // 2.4M / 480k = 5 ... decimation factor
+#define DECIMATERATE        (SDR_SAMPLE_RATE / SAMPLERATE_480k) // 2.4M / 480k = 5 ... decimation factor
 #define FFT_RESOLUTION  200                                 // 200 Hz per FFT value (=WF pixel) and a WF width of 
                                                             // 1000 pixel gives a range of 200kHz for the first waterfall
-#define SAMPLES_FOR_FFT (SAMPLERATE_480k / FFT_RESOLUTION)
+#define SAMPLES_FOR_FFT (SAMPLERATE_480k / FFT_RESOLUTION)  // see comment below
     
 // storage for the decimated 480k samples
 short isamp[SAMPLERATE_480k];
@@ -70,15 +71,15 @@ static int decimate = 0;
 static int idx = 0;
 
     /*
-     * decimation is a very simple process. It just takes every DOWNRATE sample
+     * decimation is a very simple process. It just takes every DECIMATERATE sample
      * and ignores the rest
      * to remove aliasing the original 2.4M samples must go through a low pass
      * filter with a corner frequency of < (480/2)kHz
      */
     for(int i=0; i<numSamples; i++)
     {
-        // take every DOWNRATEs sample
-        if(++decimate >= DOWNRATE)
+        // take every DECIMATERATE sample
+        if(++decimate >= DECIMATERATE)
         {
             decimate = 0;
 
@@ -92,20 +93,24 @@ static int idx = 0;
             if(idx >= SAMPLES_FOR_FFT)
             {
                 /*
-                // make the FFT for the waterfall
-                int cnt = uFFT_calc(0,isamp, qsamp, idx, frequency,0);
-                if(cnt > 0)
-                {
-                    // fft data available in uFFT_dout, length: cnt
-                    int fleft = 0;
-                    int fright = 200000;
-                    int res = (fright-fleft)/1000;
-                    
-                    // draw waterfall (one line only = send one line via WebSocket)
-                    wf_drawWF(0,fftd[0].fftData, cnt, (fright-fleft)/res, 1, fleft,fright,res,frequency,"/tmp/wfline.pix");
-                }
-                process_samples(isamp, qsamp, idx);
-                */
+                 * FFT: the resolution depends on the sample time
+                 * i.e.: 
+                 * if we have samples of 1 second, then the resolution is 1 Hz per FFT value
+                 * if we have samples of 0.1 second, then the resolution is 10 Hz per FFT value
+                 * so the resolution (Hz per FFT value) is 1/Sampletime
+                 * 
+                 * In this case: we want to show a spectrum of 200kHz and the
+                 * waterfall has 1000 pixels. So we need a resolution of 200 Hz per pixel.
+                 * We get this resultion if we record 2400 samples.
+                 * 
+                 * The samples are stored in isamp and qsamp,
+                 * when SAMPLES_FOR_FFT samples are stored, we can do the fft and draw the waterfall 
+                 */
+                
+                draw_waterfall(isamp, qsamp, idx);
+
+                // decode and play the audio
+                //process_samples(isamp, qsamp, idx);
                 idx = 0;
             }
             idx++;
