@@ -43,7 +43,7 @@ void init_soundcard()
     char sndcard[50];
     
     strcpy(sndcard,"pulse"); // can be changed to i.e.:  hw:0,0 or others
-    printf("open %s\n\r",sndcard);
+    printf("open sound device: %s\n\r",sndcard);
 
     if ((err = snd_pcm_open(&playback_handle, sndcard, SND_PCM_STREAM_PLAYBACK, 0)) < 0)
         printf("please disable playback. cannot open audio device %s (%s)\n", sndcard, snd_strerror(err));

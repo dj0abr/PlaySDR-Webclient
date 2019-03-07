@@ -2,7 +2,7 @@ CFLAGS?=-O3 -Wall
 LDLIBS+= -lpthread -lm -lmirsdrapi-rsp -lfftw3 -lsndfile -lasound -lgd -lz -ljpeg -lfreetype
 CC?=gcc
 PROGNAME=playSDRweb
-OBJ=soundcard.o playSDRweb.o sdrplay.o
+OBJ=playSDRweb.o soundcard.o sdrplay.o sampleprocessing.o fir_table_calc.o
 
 all: playSDRweb
 

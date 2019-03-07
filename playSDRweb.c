@@ -25,15 +25,18 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include "soundcard.h"
 #include "sdrplay.h"
+#include "sampleprocessing.h"
 
 void sighandler(int signum)
 {
 	printf("signal %d, exit program\n",signum);
     remove_SDRplay();
+    exit(0);
 }
 
 int main()
@@ -53,7 +56,11 @@ int main()
     
     // init SDRplay hardware
     init_SDRplay();
+    
+    // init the 2.4M -> 480k anti aliasing filters
+    init_hs_filters();
 
+    printf("Initialisation complete, system running ... stop with Ctrl-C\n");
     // infinite loop, 
     // stop program with Ctrl-C
     while(1)

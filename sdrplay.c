@@ -27,7 +27,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
+#include <sys/time.h>
 #include "sdrplay.h"
+#include "sampleprocessing.h"
 #include "mirsdrapi-rsp.h"  // the SDRplay driver must be installed !
 
 int device = 0;     // device number. If we have one SDRplay device connected: device=0
@@ -57,6 +60,7 @@ long setPoint = -30;
  */
 void init_SDRplay()
 {
+    printf("Initialize SDRplay hardware\n");
     mir_sdr_DeviceT devices[4];
     unsigned int numDevs;
     int devAvail = 0;
@@ -108,11 +112,11 @@ void init_SDRplay()
     grMode = mir_sdr_USE_RSP_SET_GR;
     if(devModel == 1) grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 
-    r = mir_sdr_StreamInit(&gainR, ((double)SAMPLE_RATE/1e6), ((double)frequency/1e6),
+    r = mir_sdr_StreamInit(&gainR, ((double)SDR_SAMPLE_RATE/1e6), ((double)frequency/1e6),
         (mir_sdr_Bw_MHzT)bwkHz, (mir_sdr_If_kHzT)ifkHz, rspLNA, &gRdBsystem,
         grMode, &samplesPerPacket, streamCallback, gainCallback, &cbContext);
     
-    printf("spp: %d\n",samplesPerPacket);
+    printf("Delivering %d samples per streamCallback\n",samplesPerPacket);
 
 	if (r != mir_sdr_Success) {
 		printf("Failed to start SDRplay RSP device.\n");
@@ -159,8 +163,37 @@ void streamCallback(short *xi, short *xq, unsigned int firstSampleNum,
     int grChanged, int rfChanged, int fsChanged, unsigned int numSamples,
     unsigned int reset, unsigned int hwRemoved, void *cbContext)
 {   
+
+    /*
+     * Testfunction for the sample rate 
+     * after a minute the printed value should
+     * be close to 2.40 MS/s
+     * 
+     * uncomment this function to check if the SDR hardware 
+     * delivers samples in the right speed
+     */
+    /*
+    struct timeval  tv;
+    static unsigned long lastus=0;
+    static unsigned long samples = 0;
+    static int f=1;
+	gettimeofday(&tv, NULL);
+    if(f)
+    {
+        f = 0;
+        lastus = tv.tv_sec * 1000000 + tv.tv_usec;
+    }
+    samples += numSamples;
+    unsigned long tnow = tv.tv_sec * 1000000 + tv.tv_usec;
+    printf("%.2f\n",((samples*1e6)/(tnow-lastus))/1e6);
+    return;
+    */
+    
+    // call the function to process the new samples (file: sampleprocessing.c)
+    sample_processing(xi, xq, numSamples);
 }
 
+// currently not used
 void gainCallback(unsigned int gRdB, unsigned int lnaGRdB, void *cbContext)
 {
     return;
