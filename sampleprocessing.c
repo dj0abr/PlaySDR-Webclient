@@ -52,11 +52,6 @@ FORCE_INLINE short hsi_fir_filter(short sample);
 FORCE_INLINE void hsq_fir_filter_increment(short sample);
 FORCE_INLINE short hsq_fir_filter(short sample);
 
-#define DECIMATERATE        (SDR_SAMPLE_RATE / SAMPLERATE_480k) // 2.4M / 480k = 5 ... decimation factor
-#define FFT_RESOLUTION  200                                 // 200 Hz per FFT value (=WF pixel) and a WF width of 
-                                                            // 1000 pixel gives a range of 200kHz for the first waterfall
-#define SAMPLES_FOR_FFT (SAMPLERATE_480k / FFT_RESOLUTION)  // see comment below
-    
 // storage for the decimated 480k samples
 short isamp[SAMPLERATE_480k];
 short qsamp[SAMPLERATE_480k];

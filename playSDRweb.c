@@ -31,6 +31,7 @@
 #include "soundcard.h"
 #include "sdrplay.h"
 #include "sampleprocessing.h"
+#include "fft.h"
 
 void sighandler(int signum)
 {
@@ -59,6 +60,9 @@ int main()
     
     // init the 2.4M -> 480k anti aliasing filters
     init_hs_filters();
+    
+    // init the FFT for the big waterfall
+    init_ffts();
 
     printf("Initialisation complete, system running ... stop with Ctrl-C\n");
     // infinite loop, 

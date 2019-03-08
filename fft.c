@@ -44,6 +44,13 @@
 #include <fftw3.h>
 #include <math.h>
 #include "fft.h"
+#include "sampleprocessing.h"
+
+// init all FFTs used in this software
+void init_ffts()
+{
+    uFFT_init(FFTID_BIG, SAMPLERATE_480k, FFT_RESOLUTION);
+}
 
 // this structure can store the definitions of up to 10 FFTs
 FFT_DATA fftd[10];   // max id is 10-1
@@ -106,15 +113,9 @@ void uFFT_exit(int id)
  * mode: 0 ... positive spectrum 0..samplerate/2
  *       1 ... both sides 0..samplerate/2 and -samplerate/2..0
  * 
- * this functions should be called by the routine receiving the samples from a soundcard or SDR
- * 
- * returns: 0 .... samples recorded, waiting for more samples
- *          >0 ... length of fft output data, available in uFFT_dout
  * */
-int uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int base_frequency, int mode)
+void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mode)
 {
-    int ret = 0;
-    
     // go through all delivered samples
     for (int i = 0; i < numSamples; i++)
     {
@@ -135,7 +136,7 @@ int uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int base
             // rate/2..rate:   Spectrum from -samplerate/2 to 0 in reverse order
             
             // number of FFT result values
-            ret = fftd[id].uFFT_rate / 2 + 1;
+            int ret = fftd[id].uFFT_rate / 2;
             
             // calculate the absolute value of the fft result
             double real,imag;
@@ -152,8 +153,10 @@ int uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int base
             else
             {
                 int dstidx = 0;
+                // we need 1000 pixels for the waterfall
+                int pixels = 1000;  // TODO: make it more generic
 
-                for (int i = 1900; i < 2400; i++)
+                for (int i = (fftd[id].uFFT_rate - pixels/2); i < fftd[id].uFFT_rate; i++)
                 {
                     // calculate absolute value
                     real = fftd[id].uFFT_dout[i][0];
@@ -161,7 +164,7 @@ int uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int base
                     fftd[id].fftData[dstidx++] = sqrt((real * real) + (imag * imag));
                 }
 
-                for (int i = 0; i < 500; i++)
+                for (int i = 0; i < (pixels/2); i++)
                 {
                     // calculate absolute value
                     real = fftd[id].uFFT_dout[i][0];
@@ -171,7 +174,6 @@ int uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int base
             }
         }
     }
-    return ret;
 }
 
 /*
