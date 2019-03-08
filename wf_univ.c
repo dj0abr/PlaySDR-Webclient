@@ -105,7 +105,7 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
         // make sure the /tmp directory is a RAM disk if you run the system on an SD card !
         char fn[512];
         sprintf(fn,"/tmp/w%d.bmp",id);
-                
+        
         // read the bitmap (if exists)
         gdImagePtr im = gdImageCreateFromFile(fn);
         if(im && dg_first[id] == 0)
@@ -213,6 +213,7 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
             printf("cannot open %s for writing\n",filename);
         }
     }*/
+    
 }
 
 /*

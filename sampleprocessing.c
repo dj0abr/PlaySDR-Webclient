@@ -60,10 +60,17 @@ short qsamp[SAMPLERATE_480k];
  * this function is called by the SDR hardware's callback function
  * it gets samples with a rate of 2.4MS/s
  */
+int cntr=0;
 void sample_processing(short *xi, short *xq, int numSamples)
 {
 static int decimate = 0;
 static int idx = 0;
+
+    if(numSamples > samplesPerPacket)
+    {
+        printf("ignore :%d\n",numSamples);
+        return;
+    }
 
     /*
      * decimation is a very simple process. It just takes every DECIMATERATE sample
@@ -100,9 +107,19 @@ static int idx = 0;
                  * 
                  * The samples are stored in isamp and qsamp,
                  * when SAMPLES_FOR_FFT samples are stored, we can do the fft and draw the waterfall 
+                 * 
+                 * we get here 2400 times per second (480k / 200)
+                 * the waterfall process is started as often as possible
+                 * on slow machines one process could go up to 100% CPU load
+                 * to reduce this load increase wfdelay from 1 to any number as required, of course
+                 * the waterfall will be slower
                  */
-                
-                draw_waterfall(isamp, qsamp, idx);
+                static int wfdelay = 0;
+                if(++wfdelay >= 1)
+                {
+                    wfdelay = 0;
+                    draw_waterfall(isamp, qsamp, idx);
+                }
 
                 // decode and play the audio
                 //process_samples(isamp, qsamp, idx);

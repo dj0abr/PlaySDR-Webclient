@@ -43,6 +43,7 @@
 
 #include <fftw3.h>
 #include <math.h>
+#include <string.h>
 #include "fft.h"
 #include "sampleprocessing.h"
 
@@ -114,6 +115,8 @@ void uFFT_exit(int id)
  *       1 ... both sides 0..samplerate/2 and -samplerate/2..0
  * 
  * */
+extern char errtxt[1000000];
+
 void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mode)
 {
     // go through all delivered samples

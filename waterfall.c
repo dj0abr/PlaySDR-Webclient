@@ -24,7 +24,11 @@
 * 
 */
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
 #include <pthread.h>
+#include <errno.h>
 #include "fft.h"
 #include "waterfall.h"
 #include "wf_univ.h"
@@ -37,8 +41,8 @@
 pthread_t wf_pid = 0;
 
 typedef struct {
-    short *pi;
-    short *pq;
+    short pi[10000];
+    short pq[10000];
     int cnt;
 } WFDATA;
 
@@ -51,17 +55,14 @@ void draw_waterfall(short *pi, short * pq, int cnt)
         // if the previous drawing is not finished, ignore the data
         // this makes the waterfall slower, but it is still ok
         // and will also work with slower CPUs
+        //printf("ueberholt\n");
         return;
     }
     
     WFDATA wfdata;
-    wfdata.pi = pi;
-    wfdata.pq = pq;
+    memcpy(wfdata.pi,pi,sizeof(short)*cnt);
+    memcpy(wfdata.pq,pq,sizeof(short)*cnt);
     wfdata.cnt = cnt;
-    
-    // TODO: there is a risk that pi and pq get overwritten by the next samples
-    // if the CPU is too slow. No problem for now, but if it happens we have to make
-    // a copy of pi and pq here. For now we avoid copying the data, but in case ...
     
     int ret = pthread_create(&wf_pid,NULL,wfproc, &wfdata);
     if(ret)
@@ -75,7 +76,7 @@ void *wfproc(void *pdata)
     // this thread must terminate itself because
     // the parent does not want to wait
     pthread_detach(pthread_self()); 
-
+    
     // get the parameters
     WFDATA *pwf = (WFDATA *)pdata;
     
@@ -92,6 +93,7 @@ void *wfproc(void *pdata)
     // now lets draw the waterfall picture
     // for now we create a bitmap width=1000 and height=400
     // parameters:
+    
     double *pfdata = fftd[FFTID_BIG].fftData; // FFT result
     int width = 1000;   // we use only 1000 instead of the cnt (=1200) values because we have 1000 pixels
     int height = 400;   // the bitmap will have a height of 400 pixels
@@ -101,15 +103,6 @@ void *wfproc(void *pdata)
     char *filename = {"/tmp/wfline.jpg"}; // jpg-filename of the bitmap, it is a good idea to write it to a RAM disk (NEVER write to an SD card !!!)
     
     drawWF(WFID_BIG,pfdata, width, width, height, fleft, fright, FFT_RESOLUTION, frequency, filename);
-    
-    
-    /*// fft data available in uFFT_dout, length: cnt
-    int fleft = 0;
-    int fright = 200000;
-    int res = (fright-fleft)/1000;
-    
-    // draw waterfall (one line only = send one line via WebSocket)
-    wf_drawWF(0,fftd[0].fftData, cnt, (fright-fleft)/res, 1, fleft,fright,res,frequency,"/tmp/wfline.pix");*/
     
     wf_pid = 0;
     pthread_exit(NULL); // self terminate this thread

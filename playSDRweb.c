@@ -33,9 +33,19 @@
 #include "sampleprocessing.h"
 #include "fft.h"
 
+char errtxt[1000000];
+
 void sighandler(int signum)
 {
 	printf("signal %d, exit program\n",signum);
+    remove_SDRplay();
+    exit(0);
+}
+
+void sighandler_mem(int signum)
+{
+	printf("memory error, signal %d, exit program\n",signum);
+    printf("\n%s\n",errtxt);
     remove_SDRplay();
     exit(0);
 }
@@ -52,24 +62,33 @@ int main()
 	sigaction(SIGQUIT, &sigact, NULL);
 	sigaction(SIGPIPE, &sigact, NULL);
     
+    struct sigaction sigact_mem;
+    sigact_mem.sa_handler = sighandler_mem;
+	sigemptyset(&sigact_mem.sa_mask);
+	sigact_mem.sa_flags = 0;
+    sigaction(SIGSEGV, &sigact_mem, NULL);
+    
     // initialize soundcard for playback of the demodulated audio
     init_soundcard();
-    
-    // init SDRplay hardware
-    init_SDRplay();
     
     // init the 2.4M -> 480k anti aliasing filters
     init_hs_filters();
     
     // init the FFT for the big waterfall
     init_ffts();
-
+    
     printf("Initialisation complete, system running ... stop with Ctrl-C\n");
+    
+    // init SDRplay hardware
+    // this MUST be the LAST initialisation because
+    // the callback starts immediately after init
+    init_SDRplay();
+
     // infinite loop, 
     // stop program with Ctrl-C
     while(1)
     {
-        usleep(1000);
+        usleep(10000);
     }
     
     return 0;
