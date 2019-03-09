@@ -99,49 +99,19 @@ static int idx = 0;
             // wait until we have SAMPLES_FOR_FFT samples, then continue
             if(idx >= SAMPLES_FOR_FFT)
             {
-                /*static unsigned long ous=0;
-                static unsigned long mid[1000];
-                static int midi=0;
-                struct timeval  tv;
-                gettimeofday(&tv, NULL);
-                unsigned long us = tv.tv_sec * 1000000 + tv.tv_usec;
-                
-                if(ous != 0)
-                {
-                    mid[midi++] = (us - ous);
-                    if(midi==1000) midi=0;
-
-                    unsigned long sum = 0;
-                    for(int x=0; x<1000; x++)
-                    {
-                        sum += mid[x];
-                    }
-                    sum /=1000;
-                    printf("dr:%d rate:%d sf:%d usec:%ld %ld\n",DECIMATERATE,SAMPLERATE_FIRST,SAMPLES_FOR_FFT,us - ous,sum);
-                }
-                ous = us;*/
                 /*
                  * FFT: the resolution depends on the sample time
                  * i.e.: 
                  * if we have samples of 1 second, then the resolution is 1 Hz per FFT value
                  * if we have samples of 0.1 second, then the resolution is 10 Hz per FFT value
                  * so the resolution (Hz per FFT value) is 1/Sampletime
-                 * 
-                 * In this case: we want to show a spectrum of 200kHz and the
-                 * waterfall has 1000 pixels. So we need a resolution of 200 Hz per pixel.
-                 * We get this resultion if we record 2400 samples.
-                 * 
-                 * The samples are stored in isamp and qsamp,
-                 * when SAMPLES_FOR_FFT samples are stored, we can do the fft and draw the waterfall 
-                 * 
-                 * we get here 2400 times per second (480k / 200)
-                 * the waterfall process is started as often as possible
-                 * on slow machines one process could go up to 100% CPU load
-                 * to reduce this load increase wfdelay from 1 to any number as required, of course
-                 * the waterfall will be slower
                  */
+                
                 static int wfdelay = 0;
-                if(++wfdelay >= 1)
+                // increasing this number makes the waterfall slower and 
+                // needs less CPU time
+                // for maximum speed: 1
+                if(++wfdelay >= 1)  
                 {
                     wfdelay = 0;
                     draw_waterfall(isamp, qsamp, idx);
