@@ -1,9 +1,9 @@
-#include "sdrplay.h"
+#include "playSDRweb.h"
 #include <fftw3.h>
 
 void uFFT_init(int id, int capRate, int resolution);
 void uFFT_exit(int id);
-void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mode);
+void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mode, int wf_width);
 void scaleSamples(double *samples, int numSamples);
 void init_ffts();
 

@@ -1,4 +1,4 @@
-#define SDR_SAMPLE_RATE 2400000 // sample rate of the SDRplay hardware
+#include "playSDRweb.h"
 
 void init_SDRplay();
 void remove_SDRplay();

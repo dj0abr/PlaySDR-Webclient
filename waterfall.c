@@ -33,6 +33,7 @@
 #include "waterfall.h"
 #include "wf_univ.h"
 #include "sampleprocessing.h"
+#include "playSDRweb.h"
 
 /*
  * do the FFT and the drawing in a separate process
@@ -41,8 +42,8 @@
 pthread_t wf_pid = 0;
 
 typedef struct {
-    short pi[10000];
-    short pq[10000];
+    short pi[SAMPLES_FOR_FFT];
+    short pq[SAMPLES_FOR_FFT];
     int cnt;
 } WFDATA;
 
@@ -60,6 +61,10 @@ void draw_waterfall(short *pi, short * pq, int cnt)
     }
     
     WFDATA wfdata;
+    if(cnt > SAMPLES_FOR_FFT)
+    {
+        printf("sizeof pi and pq too small ! is %d, should be > %d\n",SAMPLES_FOR_FFT, cnt);
+    }
     memcpy(wfdata.pi,pi,sizeof(short)*cnt);
     memcpy(wfdata.pq,pq,sizeof(short)*cnt);
     wfdata.cnt = cnt;
@@ -81,28 +86,36 @@ void *wfproc(void *pdata)
     WFDATA *pwf = (WFDATA *)pdata;
     
     // do the FFT
-    // mode=0 ... the FTT result range is: base-frequency .. base-frequency + 1000*FFT_RESOLUTION (see sampleprocessing.c)
-    uFFT_calc(FFTID_BIG, pwf->pi, pwf->pq, pwf->cnt, 0);
+    // mode=0 ... the FTT result range is: base-frequency .. base-frequency + width*FFT_RESOLUTION (see sampleprocessing.c)
+    uFFT_calc(FFTID_BIG, pwf->pi, pwf->pq, pwf->cnt, 0, 0);
 
-    /* with this setting the FFT returns 1200 values
+    /* with this setting the FFT returns SAMPLES_FOR_FFT/2 values
     * the first value starts by 0 (=tuning frequency of the SDR receiver)
-    * each value is +200 Hz
-    * we use the first 1000 values for the waterfall which is a range of 200kHz
+    * each value is +FFT_RESOLUTION Hz
+    * we use the first WF_WIDTH values for the waterfall which is a range of WF_RANGE_HZ
     */
     
-    // now lets draw the waterfall picture
-    // for now we create a bitmap width=1000 and height=400
-    // parameters:
-    
+    // draw the waterfall picture:
     double *pfdata = fftd[FFTID_BIG].fftData; // FFT result
-    int width = 1000;   // we use only 1000 instead of the cnt (=1200) values because we have 1000 pixels
-    int height = 400;   // the bitmap will have a height of 400 pixels
-    int fleft = 0;      // frequency offset of the left margin of the waterfall (just used for the titles)
-    int fright = FFT_RESOLUTION * width; // frequency offset of the right margin of the waterfall (just used for the titles)
-    int frequency = 7000000; // tuned base frequency of the SDR receiver (just used for the titles)
-    char *filename = {"/tmp/wfline.jpg"}; // jpg-filename of the bitmap, it is a good idea to write it to a RAM disk (NEVER write to an SD card !!!)
+    int width = WF_WIDTH;                   // the width of the bitmap
+    int height = WF_HEIGHT;                 // the height of the bitmap, if 1 then the WebSocket mode is used
+    int fleft = 0;                          // frequency offset of the left margin of the waterfall (usually 0)
+    int fright = FFT_RESOLUTION * width;    // frequency offset of the right margin of the waterfall (used for the titles)
+    int frequency = TUNED_FREQUENCY;        // tuned base frequency of the SDR receiver (used for the titles)
+
+
+    char filename[256] = {0};
+    #ifdef WF_MODE_FILE
+        // jpg-filename of the bitmap, it is a good idea to write it to a RAM disk (NEVER write to an SD card !!!)
+        snprintf(filename,sizeof(filename)-1,"/tmp/wfline.jpg"); 
+    #endif
+        
+    #ifdef WF_MODE_WEBSOCKET
+        height = 1;
+    #endif
     
     drawWF(WFID_BIG,pfdata, width, width, height, fleft, fright, FFT_RESOLUTION, frequency, filename);
+
     
     wf_pid = 0;
     pthread_exit(NULL); // self terminate this thread

@@ -39,6 +39,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include "sampleprocessing.h"
+#include "playSDRweb.h"
 #include "sdrplay.h"
 #include "waterfall.h"
 #include "fir_table_calc.h"
@@ -53,8 +54,8 @@ FORCE_INLINE void hsq_fir_filter_increment(short sample);
 FORCE_INLINE short hsq_fir_filter(short sample);
 
 // storage for the decimated 480k samples
-short isamp[SAMPLERATE_480k];
-short qsamp[SAMPLERATE_480k];
+short isamp[SAMPLERATE_FIRST];
+short qsamp[SAMPLERATE_FIRST];
 
 /*
  * this function is called by the SDR hardware's callback function

@@ -50,7 +50,7 @@
 // init all FFTs used in this software
 void init_ffts()
 {
-    uFFT_init(FFTID_BIG, SAMPLERATE_480k, FFT_RESOLUTION);
+    uFFT_init(FFTID_BIG, SAMPLERATE_FIRST, FFT_RESOLUTION);
 }
 
 // this structure can store the definitions of up to 10 FFTs
@@ -117,7 +117,7 @@ void uFFT_exit(int id)
  * */
 extern char errtxt[1000000];
 
-void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mode)
+void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mode, int wf_width)
 {
     // go through all delivered samples
     for (int i = 0; i < numSamples; i++)
@@ -156,8 +156,8 @@ void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mod
             else
             {
                 int dstidx = 0;
-                // we need 1000 pixels for the waterfall
-                int pixels = 1000;  // TODO: make it more generic
+                // we need width pixels for the waterfall
+                int pixels = wf_width;
 
                 for (int i = (fftd[id].uFFT_rate - pixels/2); i < fftd[id].uFFT_rate; i++)
                 {
