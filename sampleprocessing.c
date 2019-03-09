@@ -88,6 +88,10 @@ static int idx = 0;
 
             // feed the I and Q samples through the anti aliasing low pass filter
             // two separate filters for I and Q are required !
+            if(idx >= SAMPLERATE_FIRST)
+            {
+                printf("isamp index wrong :%d\n",idx);
+            }
             isamp[idx] = hsi_fir_filter(xi[i]);
             qsamp[idx] = hsq_fir_filter(xq[i]);
             
@@ -95,6 +99,27 @@ static int idx = 0;
             // wait until we have SAMPLES_FOR_FFT samples, then continue
             if(idx >= SAMPLES_FOR_FFT)
             {
+                /*static unsigned long ous=0;
+                static unsigned long mid[1000];
+                static int midi=0;
+                struct timeval  tv;
+                gettimeofday(&tv, NULL);
+                unsigned long us = tv.tv_sec * 1000000 + tv.tv_usec;
+                
+                if(ous != 0)
+                {
+                    mid[midi++] = (us - ous);
+                    if(midi==1000) midi=0;
+
+                    unsigned long sum = 0;
+                    for(int x=0; x<1000; x++)
+                    {
+                        sum += mid[x];
+                    }
+                    sum /=1000;
+                    printf("dr:%d rate:%d sf:%d usec:%ld %ld\n",DECIMATERATE,SAMPLERATE_FIRST,SAMPLES_FOR_FFT,us - ous,sum);
+                }
+                ous = us;*/
                 /*
                  * FFT: the resolution depends on the sample time
                  * i.e.: 
@@ -155,7 +180,7 @@ double hs_ceoffs[FIR1_LEN];   // filter coefficients
 
 void init_hs_filters()
 {
-    createLowPassFIRfilter(SDR_SAMPLE_RATE, 210000, hs_ceoffs, FIR1_LEN);
+    createLowPassFIRfilter(SDR_SAMPLE_RATE, (WF_RANGE_HZ * 21)/20 /* add 5% */, hs_ceoffs, FIR1_LEN);
 }
 
 FORCE_INLINE void hsi_fir_filter_increment(short sample)

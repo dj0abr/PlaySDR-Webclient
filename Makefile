@@ -13,4 +13,4 @@ playSDRweb: $(OBJ)
 	$(CC) -g -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 clean:
-	rm -f *.o playSDRweb
+	rm -f *.o playSDRweb uFFT_wisdom*

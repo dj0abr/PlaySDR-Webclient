@@ -244,7 +244,7 @@ void drawWFimage(gdImagePtr im, char *fn)
 }
 
 /*
- * usng the new FFT data, create a new waterfall line
+ * using the new FFT data, create a new waterfall line
  */
 void drawFFTline(gdImagePtr dst)
 {
@@ -266,6 +266,7 @@ void drawFFTline(gdImagePtr dst)
     int markersteps = atoi(snum) / numOfMarkers;
     
     // draw pixel per pixel
+    //printf("%d %d %d %d\n",leftqrg,rightqrg,pic_width,width);
     for(int i=left; i<right; i++)
     {
         // scale the frequency to pixel position

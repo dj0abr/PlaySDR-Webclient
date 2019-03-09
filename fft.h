@@ -3,18 +3,17 @@
 
 void uFFT_init(int id, int capRate, int resolution);
 void uFFT_exit(int id);
-void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mode, int wf_width);
+void uFFT_calc(int id, int mode, int wf_width);
 void scaleSamples(double *samples, int numSamples);
 void init_ffts();
+void uFFT_InputData(int id, short *isamples, short *qsamples, int numSamples);
 
 typedef struct {
     fftw_complex    *uFFT_din;      // FFT input data
     fftw_complex    *uFFT_dout;     // FFT output data
     fftw_plan       uFFT_plan;      // FFT plan
     double          fftData[SDR_SAMPLE_RATE]; // result, ready for waterfall
-    int             uFFT_rate;      // number of samples to be procesed
-    int             uFFT_resolution;// Hz per FFT value
-    int             uFFT_idx;       // internal counter
+    int             sampPerPass;    // number of samples to be procesed
 } FFT_DATA;
 
 enum _FFT_IDs_ {

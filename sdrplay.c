@@ -43,7 +43,6 @@ int notchEnable = 0;
 int biasT = 0;
 mir_sdr_SetGrModeT grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 int gainR = 50;
-uint32_t frequency = 7038600;   // frequency of the SDRplay LO in Hz
 int bwkHz = 1536;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
 int ifkHz = 0;      // 0 is used in this software
 int rspLNA = 0;
@@ -112,7 +111,7 @@ void init_SDRplay()
     grMode = mir_sdr_USE_RSP_SET_GR;
     if(devModel == 1) grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 
-    r = mir_sdr_StreamInit(&gainR, ((double)SDR_SAMPLE_RATE/1e6), ((double)frequency/1e6),
+    r = mir_sdr_StreamInit(&gainR, ((double)SDR_SAMPLE_RATE/1e6), ((double)TUNED_FREQUENCY/1e6),
         (mir_sdr_Bw_MHzT)bwkHz, (mir_sdr_If_kHzT)ifkHz, rspLNA, &gRdBsystem,
         grMode, &samplesPerPacket, streamCallback, gainCallback, &cbContext);
     

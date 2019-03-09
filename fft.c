@@ -50,7 +50,7 @@
 // init all FFTs used in this software
 void init_ffts()
 {
-    uFFT_init(FFTID_BIG, SAMPLERATE_FIRST, FFT_RESOLUTION);
+    uFFT_init(FFTID_BIG, SAMPLERATE_FIRST, SAMPLES_FOR_FFT);
 }
 
 // this structure can store the definitions of up to 10 FFTs
@@ -61,30 +61,27 @@ FFT_DATA fftd[10];   // max id is 10-1
  * must be called once before the first fft calculation (i.e. at program start)
  * id ... ID of this FFT, any number between 0 and 9
  * capRate ... capture rate of the sample source (soundcard or SDR)
- * resolution ... resolution of the resulting FFT data in Hz
+ * sampPerPass ... input samples per FFT pass
  * */
-void uFFT_init(int id, int capRate, int resolution)
+void uFFT_init(int id, int capRate, int sampPerPass)
 {
 char fn[256];
 
-    sprintf(fn,"uFFT_wisdom_%d_%d:%d",capRate,resolution,id);
+    sprintf(fn,"uFFT_wisdom_%d_%d:%d",capRate,sampPerPass,id);
     
-    fftd[id].uFFT_idx = 0;
-
-    fftd[id].uFFT_resolution = resolution;
-    fftd[id].uFFT_rate = capRate / resolution;
+    fftd[id].sampPerPass = sampPerPass;
     
 	if (fftw_import_wisdom_from_filename(fn) == 0)
     {
 		//printf("creating fft wisdom file");
     }
     
-    // allocate memory for the in abd oput data
-    fftd[id].uFFT_din = (fftw_complex *) fftw_malloc(sizeof(fftw_complex ) * fftd[id].uFFT_rate);
-    fftd[id].uFFT_dout = (fftw_complex *) fftw_malloc(sizeof(fftw_complex ) * fftd[id].uFFT_rate);
+    // allocate memory for the FFT data
+    fftd[id].uFFT_din = (fftw_complex *) fftw_malloc(sizeof(fftw_complex ) * fftd[id].sampPerPass);
+    fftd[id].uFFT_dout = (fftw_complex *) fftw_malloc(sizeof(fftw_complex ) * fftd[id].sampPerPass);
     
     // make the FFT plan
-    fftd[id].uFFT_plan = fftw_plan_dft_1d(fftd[id].uFFT_rate, fftd[id].uFFT_din, fftd[id].uFFT_dout, FFTW_FORWARD, FFTW_MEASURE);
+    fftd[id].uFFT_plan = fftw_plan_dft_1d(fftd[id].sampPerPass, fftd[id].uFFT_din, fftd[id].uFFT_dout, FFTW_FORWARD, FFTW_MEASURE);
     
     // store the plan for the next time, so next start will be much faster
     if (fftw_export_wisdom_to_filename(fn) == 0)
@@ -104,6 +101,17 @@ void uFFT_exit(int id)
 	if(fftd[id].uFFT_dout) fftw_free(fftd[id].uFFT_dout);
 }
 
+// prepare the FFT input data
+// copy the samples into the FFT input buffer
+void uFFT_InputData(int id, short *isamples, short *qsamples, int numSamples)
+{
+    for (int i = 0; i < numSamples; i++)
+    {
+        fftd[id].uFFT_din[i][0] = isamples[i];
+        fftd[id].uFFT_din[i][1] = qsamples[i];        
+    }
+}
+
 /*
  * FFT calculation
  * id ... ID of this FFT, any number between 0 and 9, the same as used for uFFT_init
@@ -113,68 +121,53 @@ void uFFT_exit(int id)
  * base_frequency: the frequency in Hz (tuned frequency, lowest frequency)
  * mode: 0 ... positive spectrum 0..samplerate/2
  *       1 ... both sides 0..samplerate/2 and -samplerate/2..0
+ * wf_width: width of the waterfall picture in pixels (only required for mode=1)
  * 
  * */
-extern char errtxt[1000000];
-
-void uFFT_calc(int id, short *isamples, short *qsamples, int numSamples, int mode, int wf_width)
+void uFFT_calc(int id, int mode, int wf_width)
 {
-    // go through all delivered samples
-    for (int i = 0; i < numSamples; i++)
+    // the FFT input array is filled, we can do the fft
+    fftw_execute(fftd[id].uFFT_plan);
+
+    // the FFT generates:
+    // 0..rate/2 :     Spectrum from 0 to samplerate/2
+    // rate/2..rate:   Spectrum from -samplerate/2 to 0 in reverse order
+
+    // number of FFT result values
+    int ret = fftd[id].sampPerPass / 2;
+
+    // calculate the absolute value of the fft result
+    double real,imag;
+    if(mode == 0)
     {
-        // copy the samples into the FFT input array
-        fftd[id].uFFT_din[fftd[id].uFFT_idx][0] = isamples[i];
-        fftd[id].uFFT_din[fftd[id].uFFT_idx][1] = qsamples[i];        
-        
-        // wait until we have enough samples
-        if(++fftd[id].uFFT_idx >= fftd[id].uFFT_rate)
+        for (int i = 0; i < ret; i++)
         {
-            fftd[id].uFFT_idx = 0;
-            
-            // the FFT input array is filled, we can do the fft
-            fftw_execute(fftd[id].uFFT_plan);
-            
-            // the FFT generates:
-            // 0..rate/2 :     Spectrum from 0 to samplerate/2
-            // rate/2..rate:   Spectrum from -samplerate/2 to 0 in reverse order
-            
-            // number of FFT result values
-            int ret = fftd[id].uFFT_rate / 2;
-            
-            // calculate the absolute value of the fft result
-            double real,imag;
-            if(mode == 0)
-            {
-                for (int i = 0; i < ret; i++)
-                {
-                    // calculate absolute value
-                    real = fftd[id].uFFT_dout[i][0];
-                    imag = fftd[id].uFFT_dout[i][1];
-                    fftd[id].fftData[i] = sqrt((real * real) + (imag * imag));
-                }
-            }
-            else
-            {
-                int dstidx = 0;
-                // we need width pixels for the waterfall
-                int pixels = wf_width;
+            // calculate absolute value
+            real = fftd[id].uFFT_dout[i][0];
+            imag = fftd[id].uFFT_dout[i][1];
+            fftd[id].fftData[i] = sqrt((real * real) + (imag * imag));
+        }
+    }
+    else
+    {
+        int dstidx = 0;
+        // we need width pixels for the waterfall
+        int pixels = wf_width;
 
-                for (int i = (fftd[id].uFFT_rate - pixels/2); i < fftd[id].uFFT_rate; i++)
-                {
-                    // calculate absolute value
-                    real = fftd[id].uFFT_dout[i][0];
-                    imag = fftd[id].uFFT_dout[i][1];
-                    fftd[id].fftData[dstidx++] = sqrt((real * real) + (imag * imag));
-                }
+        for (int i = (fftd[id].sampPerPass - pixels/2); i < fftd[id].sampPerPass; i++)
+        {
+            // calculate absolute value
+            real = fftd[id].uFFT_dout[i][0];
+            imag = fftd[id].uFFT_dout[i][1];
+            fftd[id].fftData[dstidx++] = sqrt((real * real) + (imag * imag));
+        }
 
-                for (int i = 0; i < (pixels/2); i++)
-                {
-                    // calculate absolute value
-                    real = fftd[id].uFFT_dout[i][0];
-                    imag = fftd[id].uFFT_dout[i][1];
-                    fftd[id].fftData[dstidx++] = sqrt((real * real) + (imag * imag));
-                }
-            }
+        for (int i = 0; i < (pixels/2); i++)
+        {
+            // calculate absolute value
+            real = fftd[id].uFFT_dout[i][0];
+            imag = fftd[id].uFFT_dout[i][1];
+            fftd[id].fftData[dstidx++] = sqrt((real * real) + (imag * imag));
         }
     }
 }

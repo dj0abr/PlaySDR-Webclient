@@ -60,16 +60,11 @@ void draw_waterfall(short *pi, short * pq, int cnt)
         return;
     }
     
-    WFDATA wfdata;
-    if(cnt > SAMPLES_FOR_FFT)
-    {
-        printf("sizeof pi and pq too small ! is %d, should be > %d\n",SAMPLES_FOR_FFT, cnt);
-    }
-    memcpy(wfdata.pi,pi,sizeof(short)*cnt);
-    memcpy(wfdata.pq,pq,sizeof(short)*cnt);
-    wfdata.cnt = cnt;
+    // copy the samples into the FFT input buffer
+    uFFT_InputData(FFTID_BIG, pi, pq, cnt);
     
-    int ret = pthread_create(&wf_pid,NULL,wfproc, &wfdata);
+    // do the fft and wf drawing job in a separate thread
+    int ret = pthread_create(&wf_pid,NULL,wfproc, NULL);
     if(ret)
     {
         printf("wf_drawline: proc NOT started\n\r");
@@ -82,12 +77,9 @@ void *wfproc(void *pdata)
     // the parent does not want to wait
     pthread_detach(pthread_self()); 
     
-    // get the parameters
-    WFDATA *pwf = (WFDATA *)pdata;
-    
     // do the FFT
     // mode=0 ... the FTT result range is: base-frequency .. base-frequency + width*FFT_RESOLUTION (see sampleprocessing.c)
-    uFFT_calc(FFTID_BIG, pwf->pi, pwf->pq, pwf->cnt, 0, 0);
+    uFFT_calc(FFTID_BIG, 0, 0);
 
     /* with this setting the FFT returns SAMPLES_FOR_FFT/2 values
     * the first value starts by 0 (=tuning frequency of the SDR receiver)
@@ -115,8 +107,7 @@ void *wfproc(void *pdata)
     #endif
     
     drawWF(WFID_BIG,pfdata, width, width, height, fleft, fright, FFT_RESOLUTION, frequency, filename);
-
-    
+        
     wf_pid = 0;
     pthread_exit(NULL); // self terminate this thread
 }

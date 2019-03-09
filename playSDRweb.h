@@ -35,13 +35,13 @@
 // attention: the expression (SDR_SAMPLE_RATE / 2 / WF_RANGE_HZ) HAS to 
 // be an integer number without decimal places !!!
 // (the following alternatives are integer numbers if the sampling rate is 2.4MS/s)
-// #define WF_RANGE_HZ        400000       // (first downsampled rate: 800000)
+//#define WF_RANGE_HZ        400000       // (first downsampled rate: 800000)
 // #define WF_RANGE_HZ        300000       // (first downsampled rate: 600000)
-#define WF_RANGE_HZ        240000       // (first downsampled rate: 480000)
-// #define WF_RANGE_HZ        200000       // (first downsampled rate: 400000)
+// #define WF_RANGE_HZ        240000       // (first downsampled rate: 480000)
+ #define WF_RANGE_HZ        200000       // (first downsampled rate: 400000) 
 // #define WF_RANGE_HZ        150000       // (first downsampled rate: 300000)
 // #define WF_RANGE_HZ        120000       // (first downsampled rate: 240000)
-// #define WF_RANGE_HZ        100000       // (first downsampled rate: 200000)
+//#define WF_RANGE_HZ        100000       // (first downsampled rate: 200000)
 
 // width of the big waterfall in pixels
 #define WF_WIDTH    1000
@@ -68,6 +68,6 @@
 
 #define SAMPLERATE_FIRST    (WF_RANGE_HZ * 2)                       // sample rate after the first down-sampling
 #define DECIMATERATE        (SDR_SAMPLE_RATE / SAMPLERATE_FIRST)    // i.e 2.4M / 600k = 4 ... decimation factor
-#define FFT_RESOLUTION      (SAMPLERATE_FIRST / 2 / WF_WIDTH)       // frequency step from one FFT value to the next
+#define FFT_RESOLUTION      (WF_RANGE_HZ / WF_WIDTH)       // frequency step from one FFT value to the next
 #define SAMPLES_FOR_FFT     (SAMPLERATE_FIRST / FFT_RESOLUTION)     // required samples for the FFT to generate to requested resolution
 

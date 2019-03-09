@@ -68,6 +68,16 @@ int main()
 	sigact_mem.sa_flags = 0;
     sigaction(SIGSEGV, &sigact_mem, NULL);
     
+    printf("\nplaySDRweb parameters:\n\n");
+    printf("SDR base QRG:    %d Hz\n",TUNED_FREQUENCY);
+    printf("SDR sample rate: %d S/s\n",SDR_SAMPLE_RATE);
+    printf("WF width:        %d Hz\n",WF_RANGE_HZ);
+    printf("WF width:        %d pixel\n",WF_WIDTH);
+    printf("1st downsampling:%d S/s\n",SAMPLERATE_FIRST);
+    printf("1st decim. rate: %d\n",DECIMATERATE);
+    printf("1st FFT resol.:  %d Hz\n",FFT_RESOLUTION);
+    printf("1st FTT smp/pass:%d\n",SAMPLES_FOR_FFT);
+    
     // initialize soundcard for playback of the demodulated audio
     init_soundcard();
     
@@ -77,11 +87,11 @@ int main()
     // init the FFT for the big waterfall
     init_ffts();
     
-    printf("Initialisation complete, system running ... stop with Ctrl-C\n");
+    printf("\nInitialisation complete, system running ... stop with Ctrl-C\n");
     
     // init SDRplay hardware
     // this MUST be the LAST initialisation because
-    // the callback starts immediately after init
+    // the callback starts immediately after init_SDRplay
     init_SDRplay();
 
     // infinite loop, 
