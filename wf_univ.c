@@ -52,6 +52,7 @@
 #include "wf_univ.h"
 #include "fft.h"
 #include "color.h"
+#include "websocketserver.h"
 
 void drawWFimage(gdImagePtr im, char *fn);
 void drawFFTline(gdImagePtr dst);
@@ -141,78 +142,81 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
             gdImageDestroy(convim);
         }
     }
-    /*else
+    else
     {
         // special handling for height=1px, one WF line
-        FILE *fw = fopen(filename,"w");
-        if(fw)
+        // this is used if the waterfall is generated somewhere else
+        // in this case generate a dataset with some header information
+        // followed by the pixels and their colors (the pixel color is an index
+        // into a palette, see color.c)
+
+        // save the data in /tmp/wfline.pix in this format:
+        // 1 byte: ID counter
+        // 1 byte: waterfall ID
+        // 4 byte: left margin frequency in Hz
+        // 4 byte: right margin frequency in Hz
+        // 4 byte: tuner frequency in Hz
+        // 4 byte: resolution Hz per pixel
+        // 4 byte: offset to tuner frequency in Hz
+        // followed by the dBm data, 1 byte per pixel holding the dBm value
+        int left = leftqrg / resolution;
+        int right = rightqrg / resolution;
+        unsigned char wfdata[(right-left)+22];
+        int idx = 0;
+        static unsigned char idcnt = 0;
+        
+        // idcnt ... number of this dataset, used to detect if the dataset was handled already
+        wfdata[idx++] = idcnt++;
+        // waterfalle id, in case we have more waterfalls
+        wfdata[idx++] = id;
+        
+        // offset of the left and right margin of the picture in Hz
+        wfdata[idx++] = leftqrg >> 24;
+        wfdata[idx++] = leftqrg >> 16;
+        wfdata[idx++] = leftqrg >> 8;
+        wfdata[idx++] = leftqrg;
+        
+        wfdata[idx++] = rightqrg >> 24;
+        wfdata[idx++] = rightqrg >> 16;
+        wfdata[idx++] = rightqrg >> 8;
+        wfdata[idx++] = rightqrg;
+        
+        // frequency where the SDR is tuned in Hz
+        int tqrg = tunedQRG;
+        wfdata[idx++] = tqrg >> 24;
+        wfdata[idx++] = tqrg >> 16;
+        wfdata[idx++] = tqrg >> 8;
+        wfdata[idx++] = tqrg;
+        
+        // the resolution in Hz/pixel
+        wfdata[idx++] = resolution >> 24;
+        wfdata[idx++] = resolution >> 16;
+        wfdata[idx++] = resolution >> 8;
+        wfdata[idx++] = resolution;
+
+        // offset of the RX frequency to the tuned frequency in Hz
+        int foffset = 0; // TODO: activate if the SSB demodulator is implemented
+        wfdata[idx++] = foffset >> 24;
+        wfdata[idx++] = foffset >> 16;
+        wfdata[idx++] = foffset >> 8;
+        wfdata[idx++] = foffset;
+
+        // calculate pixel colors
+        calcColorParms(id,left,right,fdata); 
+        
+        // draw pixel per pixel
+        for(int i=left; i<right; i++)
         {
-            // save the data in /tmp/wfline.pix in this format:
-            // 1 byte: ID counter
-            // 1 byte: waterfall ID
-            // 4 byte: left margin frequency in Hz
-            // 4 byte: right margin frequency in Hz
-            // 4 byte: tuner frequency in Hz
-            // 4 byte: resolution Hz per pixel
-            // 4 byte: offset to tuner frequency in Hz
-            // followed by the dBm data, 1 byte per pixel holding the dBm value
-            unsigned char wfdata[10000];
-            int idx = 0;
-            static unsigned char idcnt = 0;
-            
-            wfdata[idx++] = idcnt++;
-            wfdata[idx++] = id;
-            
-            wfdata[idx++] = leftqrg >> 24;
-            wfdata[idx++] = leftqrg >> 16;
-            wfdata[idx++] = leftqrg >> 8;
-            wfdata[idx++] = leftqrg;
-            
-            wfdata[idx++] = rightqrg >> 24;
-            wfdata[idx++] = rightqrg >> 16;
-            wfdata[idx++] = rightqrg >> 8;
-            wfdata[idx++] = rightqrg;
-            
-            int tqrg = tunedQRG;
-            wfdata[idx++] = tqrg >> 24;
-            wfdata[idx++] = tqrg >> 16;
-            wfdata[idx++] = tqrg >> 8;
-            wfdata[idx++] = tqrg;
-            
-            wfdata[idx++] = resolution >> 24;
-            wfdata[idx++] = resolution >> 16;
-            wfdata[idx++] = resolution >> 8;
-            wfdata[idx++] = resolution;
-
-            wfdata[idx++] = foffset >> 24;
-            wfdata[idx++] = foffset >> 16;
-            wfdata[idx++] = foffset >> 8;
-            wfdata[idx++] = foffset;
-
-            int left = leftqrg / resolution;
-            int right = rightqrg / resolution;
-
-            // calculate pixel colors
-            calcColorParms(id,left,right,fdata); 
-            
-            // draw pixel per pixel
-            for(int i=left; i<right; i++)
-            {
-                //printf("%d\n\r",getPixelColor(fdata[i]));
-                wfdata[idx++] = getPixelColor(id,fdata[i]);
-                if(idx >= sizeof(wfdata))
-                    break;
-            }
-            
-            fwrite(wfdata,1,idx,fw);
-            
-            fclose(fw);
+            //printf("%d\n\r",getPixelColor(fdata[i]));
+            wfdata[idx++] = getPixelColor(id,fdata[i]);
+            if(idx >= sizeof(wfdata))
+                break;
         }
-        else
-        {
-            printf("cannot open %s for writing\n",filename);
-        }
-    }*/
+        
+        // wfdata with length cnt is now filled with data
+        // give it to the WebSocket Server
+        ws_send(wfdata,idx);
+    }
     
 }
 

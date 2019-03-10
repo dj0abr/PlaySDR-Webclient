@@ -1,16 +1,17 @@
-CFLAGS?=-O3 -Wall
+CFLAGS?=-O3 -Wall -I./websocket
 LDLIBS+= -lpthread -lm -lmirsdrapi-rsp -lfftw3 -lsndfile -lasound -lgd -lz -ljpeg -lfreetype
 CC?=gcc
 PROGNAME=playSDRweb
-OBJ=playSDRweb.o soundcard.o sdrplay.o sampleprocessing.o fir_table_calc.o waterfall.o fft.o wf_univ.o color.o
+OBJ=playSDRweb.o soundcard.o sdrplay.o sampleprocessing.o fir_table_calc.o waterfall.o fft.o wf_univ.o color.o websocket/websocketserver.o websocket/ws_callbacks.o websocket/base64.o websocket/sha1.o websocket/ws.o websocket/handshake.o
 
 all: playSDRweb
 
+websocket/%.o: websocket/%c
 %.o: %.c
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $< -o $@
 
 playSDRweb: $(OBJ)
 	$(CC) -g -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 clean:
-	rm -f *.o playSDRweb uFFT_wisdom*
+	rm -f *.o websocket/*.o playSDRweb uFFT_wisdom*

@@ -32,8 +32,7 @@
 #include "sdrplay.h"
 #include "sampleprocessing.h"
 #include "fft.h"
-
-char errtxt[1000000];
+#include "websocketserver.h"
 
 void sighandler(int signum)
 {
@@ -45,7 +44,6 @@ void sighandler(int signum)
 void sighandler_mem(int signum)
 {
 	printf("memory error, signal %d, exit program\n",signum);
-    printf("\n%s\n",errtxt);
     remove_SDRplay();
     exit(0);
 }
@@ -86,6 +84,9 @@ int main()
     
     // init the FFT for the big waterfall
     init_ffts();
+    
+    // init the Websocket Server
+    ws_init();
     
     printf("\nInitialisation complete, system running ... stop with Ctrl-C\n");
     

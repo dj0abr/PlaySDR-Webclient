@@ -59,6 +59,10 @@
 // for the Sat es'hail 2 this should be: 10489500000 Hz (= 10.4895 GHz)
 #define TUNED_FREQUENCY     7000000     // 40 band
 
+// Websocket Port
+// the computer running this software must be reachable under this port
+// (i.e. open this TCP port in the internet router)
+#define WEBSOCK_PORT    8090
 
 
 // ==========================================================================================
