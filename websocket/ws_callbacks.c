@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "websocketserver.h"
+#include "../setqrg.h"
 
 // a new browser connected
 void onopen(int fd)
@@ -91,7 +92,28 @@ void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1)
 void onmessage(int fd, unsigned char *msg)
 {
 	char *cli = ws_getaddress(fd);
-	printf("I receive a message: %s, from: %s/%d\n", msg, cli, fd);
+	printf("user message: %s, from: %s/%d\n", msg, cli, fd);
+    
+    if(strstr((char *)msg,"mousepo:"))
+    {
+        freqval = atoi((char *)msg+8);
+        setfreq = 1;
+    }
+    if(strstr((char *)msg,"mousewh:"))
+    {
+        freqval = atoi((char *)msg+8);
+        setfreq = 2;
+    }
+    if(strstr((char *)msg,"bandsel:"))
+    {
+        freqval = atoi((char *)msg+8);
+        setfreq = 3;
+    }
+    if(strstr((char *)msg,"ssbmode:"))
+    {
+        freqval = atoi((char *)msg+8);
+        setfreq = 4;
+    }
 	
 	free(cli);
 	free(msg);

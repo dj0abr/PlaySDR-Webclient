@@ -37,9 +37,9 @@
 // (the following alternatives are integer numbers if the sampling rate is 2.4MS/s)
 // !!! if the SDR_SAMPLE_RATE is changes, these values must be recalculated !!! (see also SSB_RATE below)
 // #define WF_RANGE_HZ        400000       // (first downsampled rate: 800000)
-#define WF_RANGE_HZ        300000       // (first downsampled rate: 600000)
+// #define WF_RANGE_HZ        300000       // (first downsampled rate: 600000)
 // #define WF_RANGE_HZ        240000       // (first downsampled rate: 480000)
-// #define WF_RANGE_HZ        200000       // (first downsampled rate: 400000) 
+ #define WF_RANGE_HZ        200000       // (first downsampled rate: 400000) 
 // #define WF_RANGE_HZ        150000       // (first downsampled rate: 300000)
 // #define WF_RANGE_HZ        120000       // (first downsampled rate: 240000)
 //#define WF_RANGE_HZ        100000       // (first downsampled rate: 200000)
@@ -60,7 +60,7 @@
 // this is similar to the left margin of the big waterfall picture
 // and therefore should be the lowest frequency of interest (i.e. beginning of a band)
 // for the Sat es'hail 2 this should be: 10489500000 Hz (= 10.4895 GHz)
-#define TUNED_FREQUENCY     999990000     // 40 band
+#define TUNED_FREQUENCY     7000000     // 40 band
 
 // Websocket Port
 // the computer running this software must be reachable under this port
@@ -75,7 +75,7 @@
 
 #define SAMPLERATE_FIRST    (WF_RANGE_HZ * 2)                       // sample rate after the first down-sampling
 #define DECIMATERATE        (SDR_SAMPLE_RATE / SAMPLERATE_FIRST)    // i.e 2.4M / 600k = 4 ... decimation factor
-#define FFT_RESOLUTION      (WF_RANGE_HZ / WF_WIDTH)       // frequency step from one FFT value to the next
+#define FFT_RESOLUTION      (WF_RANGE_HZ / WF_WIDTH)                // frequency step from one FFT value to the next
 #define SAMPLES_FOR_FFT     (SAMPLERATE_FIRST / FFT_RESOLUTION)     // required samples for the FFT to generate to requested resolution
 
 // the SSB audio rate must be an integer part of SAMPLERATE_FIRST

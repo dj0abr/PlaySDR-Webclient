@@ -358,6 +358,8 @@ canvas {
             var resolution = 1;
             var vertlines = 1;
             var vertmarker = 1;
+            var ssbmode = 0;
+            var bandsel = 6;
             
             var start1 = 0;
             var end1 = 0;
@@ -374,7 +376,7 @@ canvas {
                 if(e.shiftKey == true)
                     delta *= 25;
                 
-                websocket.send("mousewheel:"+ delta);
+                websocket.send("mousewh:"+ delta + "\0");
 
                 return false;
             }
@@ -383,7 +385,7 @@ canvas {
             {
                 var xpos = e.clientX;
                 var rect = document.getElementById("wf_overlay").getBoundingClientRect();
-                websocket.send("mousepos:"+ (xpos - rect.left));
+                websocket.send("mousepo:"+ (xpos - rect.left) + "\0");
             }
 
             function start()
@@ -396,7 +398,7 @@ canvas {
                     function(evt){
                         var xpos = evt.clientX;
                         var rect = document.getElementById("wf_overlay").getBoundingClientRect();
-                        websocket.send("mousepos:"+ (xpos - rect.left));
+                        websocket.send("mousepo:"+ (xpos - rect.left) + "\0");
                     },false
                 );
                 
@@ -565,30 +567,6 @@ canvas {
                         }
                         imagedata.data[off+3] = 255;
                         
-                        // vertical lines
-                        /*if(vertlines == 1)
-                        {
-                            if(qrg == (end-start)/2)
-                            {
-                                imagedata.data[off] = 255;
-                                imagedata.data[off+1] = 255;
-                                imagedata.data[off+2] = 255;
-                            }
-                            
-                            if(qrg == (end-start)/4)
-                            {
-                                imagedata.data[off] = 255;
-                                imagedata.data[off+1] = 255;
-                                imagedata.data[off+2] = 255;
-                            }
-                            
-                            if(qrg == (end-start)*3/4)
-                            {
-                                imagedata.data[off] = 255;
-                                imagedata.data[off+1] = 255;
-                                imagedata.data[off+2] = 255;
-                            }
-                        }*/
                         qrg += resolution;
                     }
                 }
@@ -626,8 +604,18 @@ canvas {
                             ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
                             ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
                             ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
-                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 100;
+                            ImageData.data[((i*(width*4)) + (j*4) + 3)] = 75;
                         }
+                    }
+                    
+                    // make a vertical line in the middle (which is the carrier frequency)
+                    j = calcpos(start1 + (end1-start1)/2);
+                    for(var i=0; i<height; i++)
+                    {
+                        ImageData.data[((i*(width*4)) + (j*4) + 0)] = 255;
+                        ImageData.data[((i*(width*4)) + (j*4) + 1)] = 255;
+                        ImageData.data[((i*(width*4)) + (j*4) + 2)] = 255;
+                        ImageData.data[((i*(width*4)) + (j*4) + 3)] = 255;
                     }
                 }
                 
@@ -742,7 +730,8 @@ canvas {
                 context.fillStyle = '#ffffff';
                 context.fillRect(0,0,width,height);
                 
-                context.strokeStyle = '#0000ff';
+                context.strokeStyle = '#000000';
+                context.fillStyle = '#8080ff';
                 
                 context.beginPath();
                 
@@ -751,6 +740,9 @@ canvas {
                 context.lineTo(calcpos(end1), 1);
                 context.lineTo(width-1, height-1);
 
+                context.closePath();
+                context.fill();
+                
                 context.stroke();
             }
 
@@ -878,6 +870,20 @@ canvas {
                     vertmarker = Number($(this).children("option:selected").val());
                     localStorage.setItem('ymarker',vertmarker);
                 });
+
+                $('#bandsel').click(function(e) {
+                    e.preventDefault();
+                    bandsel = Number($(this).children("option:selected").val());
+                    localStorage.setItem('bandsel',bandsel);
+                    websocket.send("bandsel:"+ bandsel);
+                });
+
+                $('#ssbmode').click(function(e) {
+                    e.preventDefault();
+                    ssbmode = Number($(this).children("option:selected").val());
+                    localStorage.setItem('ssbmode',ssbmode);
+                    websocket.send("ssbmode:"+ ssbmode);
+                });
             }
             
             function setListboxes()
@@ -922,12 +928,26 @@ canvas {
                     vertmarker = v;
                     $('#ymarker').val(vertmarker);
                 }
+                    
+                v = localStorage.getItem('bandsel');
+                if(v != null)
+                {
+                    bandsel = v;
+                    $('#bandsel').val(bandsel);
+                }
+                    
+                v = localStorage.getItem('ssbmode');
+                if(v != null)
+                {
+                    ssbmode = v;
+                    $('#ssbmode').val(ssbmode);
+                }
             }
 
         </script>
         </head>
     <body>
-        <div class="header_mytitle" id="header_mytitle">DJ0ABR Band Watch SDRplay RSP1a</div>
+        <div class="header_mytitle" id="header_mytitle">DJ0ABR playSDRweb RSP1a</div>
         <div class="header_subtitle" id="header_subtitle">Live Stream - Location: JN68NT</div>
         <br>
         <form>
@@ -967,6 +987,29 @@ canvas {
             <select id="ymarker" class="selectbox" name="ymarker">
                 <option value="1">Marker ON</option>
                 <option value="0">Marker OFF</option>
+            </select>
+            <select id="ssbmode" class="selectbox" name="ssbmode">
+                <option value="0">LSB</option>
+                <option value="1">USB</option>
+            </select>
+            <select id="bandsel" class="selectbox" name="bandsel">
+                <option value="0">2200m</option>
+                <option value="1">630m</option>
+                <option value="2">80m</option>
+                <option value="3">60m</option>
+                <option value="4">40m</option>
+                <option value="5">30m</option>
+                <option value="6">20m</option>
+                <option value="7">17m</option>
+                <option value="8">15m</option>
+                <option value="9">12m</option>
+                <option value="10">10m</option>
+                <option value="11">6m</option>
+                <option value="12">4m</option>
+                <option value="13">2m</option>
+                <option value="14">70cm</option>
+                <option value="15">23cm</option>
+                <option value="16">es'hail-2</option>
             </select>
         </form>
         <br>

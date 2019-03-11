@@ -35,6 +35,7 @@
 #include "hilbert90.h"
 #include "wf_univ.h"
 #include "downmixer.h"
+#include "setqrg.h"
 #include "fir_table_calc.h"
 
 short isamples[DEFAULT_SSB_RATE];
@@ -64,7 +65,10 @@ static int idx = 0;
             qsamples[idx] = (xq[i]);
             
             // LSB=+ or USB=-
-            usbsamples[idx] = BandPassm45deg(isamples[idx]) - BandPass45deg(qsamples[idx]);
+            if(ssbmode == 0)
+                usbsamples[idx] = BandPassm45deg(isamples[idx]) + BandPass45deg(qsamples[idx]);
+            else
+                usbsamples[idx] = BandPassm45deg(isamples[idx]) - BandPass45deg(qsamples[idx]);
 
             // Audio band low pass
             // optional: usbsamples[idx] = audio_lowPass(usbsamples[idx]);
@@ -99,7 +103,9 @@ static int idx = 0;
                     height = 1;
                 #endif
                 
-                drawWF(WFID_SMALL,pfdata, width, width, height, fleft, fright, FFT_RESOLUTION_SMALL, frequency, filename);
+                drawWF(WFID_SMALL,pfdata, width, width, height, fleft, fright, FFT_RESOLUTION_SMALL, frequency+foffset-(fright-fleft)/2, filename);
+                
+                //wf_drawWF(1,fftd[1].fftData, cnt, (fright-fleft)/res, 1, fleft,fright,res,frequency+foffset-(fright-fleft)/2,"/tmp/wfsmall.pix");
 
                 // play the audio to the soundcard
                 play_samples(usbsamples, SAMPLES_FOR_FFT_SMALL);

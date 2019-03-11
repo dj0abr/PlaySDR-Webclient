@@ -53,6 +53,7 @@
 #include "fft.h"
 #include "color.h"
 #include "websocketserver.h"
+#include "setqrg.h"
 
 void drawWFimage(int id, gdImagePtr im, char *fn);
 void drawFFTline(int id, gdImagePtr dst);
@@ -194,7 +195,6 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         wfdata[idx++] = res;
 
         // offset of the RX frequency to the tuned frequency in Hz
-        int foffset = 0; // TODO: activate if the SSB demodulator is implemented
         wfdata[idx++] = foffset >> 24;
         wfdata[idx++] = foffset >> 16;
         wfdata[idx++] = foffset >> 8;

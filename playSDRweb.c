@@ -35,6 +35,7 @@
 #include "downmixer.h"
 #include "ssb.h"
 #include "wf_univ.h"
+#include "setqrg.h"
 #include "websocketserver.h"
 
 void sighandler(int signum)
@@ -112,7 +113,8 @@ int main()
     // stop program with Ctrl-C
     while(1)
     {
-        usleep(10000);
+        set_frequency();
+        usleep(1000);
     }
     
     return 0;
