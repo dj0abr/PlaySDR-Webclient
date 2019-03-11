@@ -22,7 +22,12 @@ But I use 2.4Msamples, so later on this can be compatible for
 i.e. RTL sticks and others.
 
 # this is WORK in PROGRESS
-the software is not useable until the paperwork is done :-)
+actual Status: this is the first working version
+1) Setup: playSDRweb.h
+2) compile and start
+3) it plays the audio of the tuned frequency + 10 kHz
+
+next to come: selecting the audio in the waterfall by mouse click
 
 Prerequisites:
 ==============
