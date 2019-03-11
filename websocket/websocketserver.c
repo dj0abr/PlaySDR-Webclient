@@ -27,7 +27,7 @@
 * websocketserver.c ... sends data to a web browser
 * 
 * if a web browser is logged into this WebSocketServer then
-* we send the pixel data and header to this browser.
+* we send the pixel data (of one line) and header data to this browser.
 * Its the job of the browser to draw the waterfall picture.
 * 
 * This WebSocketServer is a multi threaded implementation and
@@ -35,7 +35,7 @@
 * 
 * ! THIS implementation of a WebSocketServer DOES NOT require any
 * modifications of the (Apache) Webserver. It has nothing to do with
-* the webserver because it handles all Websocket task by itself !
+* the webserver because it handles all Websocket tasks by itself !
 * 
 */
 
@@ -46,12 +46,21 @@
 #include "websocketserver.h"
 #include "../playSDRweb.h"
 
+WS_SOCK actsock[MAX_CLIENTS];
+
 void *wsproc(void *pdata);
 
 // initialise the WebSocketServer
 // run the WebSocketServer in a new thread
 void ws_init()
 {
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        actsock[i].socket = -1;
+        actsock[i].send0 = 0;
+        actsock[i].send1 = 0;
+    }
+            
     pthread_t ws_pid = 0;
     
     int ret = pthread_create(&ws_pid,NULL,wsproc, NULL);
@@ -82,7 +91,66 @@ void *wsproc(void *pdata)
  * save the data in an array and set a flag.
  * the transmission to the web browser is done by the threads
  * handling all logged-in web browsers.
+ * 
+ * this function is thread safe by a LOCK
  */
-void ws_send(unsigned char *pwfdata, int idx)
+pthread_mutex_t crit_sec;
+#define LOCK	pthread_mutex_lock(&crit_sec)
+#define UNLOCK	pthread_mutex_unlock(&crit_sec)
+
+void ws_send(unsigned char *pwfdata, int idx, int wf_id)
 {
+    // insert the new message into the buffer of each active client
+    LOCK;
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        if(actsock[i].socket != -1)
+        {
+            if(wf_id == 0 && actsock[i].send0 == 0)
+            {
+                memcpy(actsock[i].msg0, pwfdata, idx);
+                actsock[i].msglen0 = idx;
+                actsock[i].send0 = 1;
+            }
+            
+            if(wf_id == 1 && actsock[i].send1 == 0)
+            {
+                memcpy(actsock[i].msg1, pwfdata, idx);
+                actsock[i].msglen1 = idx;
+                actsock[i].send1 = 1;
+            }
+        }
+    }
+    UNLOCK;
+}
+
+// insert a socket into the socket-list
+void insert_socket(int fd)
+{
+    LOCK;
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        if(actsock[i].socket == -1)
+        {
+            actsock[i].socket = fd;
+            actsock[i].send0 = 0;
+            actsock[i].send1 = 0;
+            UNLOCK;
+            return;
+        }
+    }
+    UNLOCK;
+    printf("all sockets in use !!!\n");
+}
+
+// remove a socket from the socket-list
+void remove_socket(int fd)
+{
+    LOCK;
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        if(actsock[i].socket == fd)
+            actsock[i].socket = -1;
+    }
+    UNLOCK;
 }

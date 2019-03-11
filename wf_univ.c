@@ -23,7 +23,7 @@
 * wf_univ.c ... drawing routines for waterfalls, using gdlib
 * 
 * usage:
-* drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, int _rightqrg, int res, int _tunedQRG, char *fn);
+* drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, int _rightqrg, int res, int _tunedQRG, char *fn);
 * 
 * id ... a unique number (used to create a temporary file name, see wf_univ.h)
 * fdata ... a double array containing the FFT result
@@ -54,49 +54,48 @@
 #include "color.h"
 #include "websocketserver.h"
 
-void drawWFimage(gdImagePtr im, char *fn);
-void drawFFTline(gdImagePtr dst);
-void drawQrgTitles(gdImagePtr dst);
+void drawWFimage(int id, gdImagePtr im, char *fn);
+void drawFFTline(int id, gdImagePtr dst);
+void drawQrgTitles(int id, gdImagePtr dst);
 
-int dg_first[WFID_MAX];
-int first = 1;
-int id;
-double *fftdata;    // data from fftcnt
-int fftcnt;         // number of values from fftcnt
-int pic_width;      // number of horizontal pixels of the resulting WF diagram
-int pic_height;     // number of vertial pixels of the resulting WF diagram
-                    // set pic_height=1 for one pixel line only
-char filename[256]; // store the bitmap into this file
-int leftqrg;        // qrg of the left margin of the bitmap
-int rightqrg;       // qrg of the right margin of the bitmap
-int resolution;     // resolution of the fft data in Hz per value
-int toprow;         // start drawing here, keep lines above toprow clear for the title
-int tunedQRG;    // base QRG for titles
+typedef struct {
+    int dg_first;
+    double *fftdata;    // data from fftcnt
+    int fftcnt;         // number of values from fftcnt
+    int pic_width;      // number of horizontal pixels of the resulting WF diagram
+    int pic_height;     // number of vertial pixels of the resulting WF diagram
+                        // set pic_height=1 for one pixel line only
+    char filename[256]; // store the bitmap into this file
+    int leftqrg;        // qrg of the left margin of the bitmap
+    int rightqrg;       // qrg of the right margin of the bitmap
+    int resolution;     // resolution of the fft data in Hz per value
+    int toprow;         // start drawing here, keep lines above toprow clear for the title
+    int tunedQRG;    // base QRG for titles
+} WF_DATA;
 
-void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, int _rightqrg, int res, int _tunedQRG, char *fn)
+WF_DATA wfvars[WFID_MAX];
+
+void init_wf_univ()
 {
-    id = _id;
-    fftdata = fdata;
-    fftcnt = cnt;
-    pic_width = wpix;
-    pic_height = hpix;
-    strcpy(filename,fn);
-    leftqrg = _leftqrg;
-    rightqrg = _rightqrg;
-    resolution = res;
-    toprow = 20;    // lines above toprow are used for the titles, below toprow for the moving waterfall
-    tunedQRG = _tunedQRG;
-    
-    if(first)
-    {
-        // init WFs
-        for(int i=0; i<WFID_MAX; i++)
-            dg_first[i] = 1;
-        first = 0;
-    }
+    for(int i=0; i<WFID_MAX; i++)
+        wfvars[i].dg_first = 1;
+}
+
+void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, int _rightqrg, int res, int _tunedQRG, char *_fn)
+{
+    wfvars[id].fftdata = fdata;
+    wfvars[id].fftcnt = cnt;
+    wfvars[id].pic_width = wpix;
+    wfvars[id].pic_height = hpix;
+    strcpy(wfvars[id].filename,_fn);
+    wfvars[id].leftqrg = _leftqrg;
+    wfvars[id].rightqrg = _rightqrg;
+    wfvars[id].resolution = res;
+    wfvars[id].toprow = 20;    // lines above toprow are used for the titles, below toprow for the moving waterfall
+    wfvars[id].tunedQRG = _tunedQRG;
     
     // scale the fft data to match antenna dBm
-    scaleSamples(fftdata, fftcnt); 
+    scaleSamples(fdata, cnt); 
     
     if(hpix > 1)
     {
@@ -109,24 +108,24 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
         
         // read the bitmap (if exists)
         gdImagePtr im = gdImageCreateFromFile(fn);
-        if(im && dg_first[id] == 0)
+        if(im && wfvars[id].dg_first == 0)
         {
-            drawWFimage(im, fn);
+            drawWFimage(id, im, fn);
             // free ressources
             gdImageDestroy(im);
         }
         else
         {
-            dg_first[id] = 0;
+            wfvars[id].dg_first = 0;
             // image file does not exist, create an empty image
             printf("Create new WF image: %s\n",fn);
             
             // create Image
-            gdImagePtr im = gdImageCreate(pic_width,pic_height);      
+            gdImagePtr im = gdImageCreate(wpix,hpix);      
             // black background
             gdImageColorAllocate(im, 0, 0, 0);  
             // draw frequency titles
-            drawQrgTitles(im);
+            drawQrgTitles(id,im);
             // write to file
             gdImageFile(im, fn);
             // free ressources
@@ -138,7 +137,7 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
         gdImagePtr convim = gdImageCreateFromFile(fn);
         if(convim)
         {
-            gdImageFile(convim, filename);
+            gdImageFile(convim, wfvars[id].filename);
             gdImageDestroy(convim);
         }
     }
@@ -159,8 +158,8 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
         // 4 byte: resolution Hz per pixel
         // 4 byte: offset to tuner frequency in Hz
         // followed by the dBm data, 1 byte per pixel holding the dBm value
-        int left = leftqrg / resolution;
-        int right = rightqrg / resolution;
+        int left = _leftqrg / res;
+        int right = _rightqrg / res;
         unsigned char wfdata[(right-left)+22];
         int idx = 0;
         static unsigned char idcnt = 0;
@@ -171,28 +170,28 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
         wfdata[idx++] = id;
         
         // offset of the left and right margin of the picture in Hz
-        wfdata[idx++] = leftqrg >> 24;
-        wfdata[idx++] = leftqrg >> 16;
-        wfdata[idx++] = leftqrg >> 8;
-        wfdata[idx++] = leftqrg;
+        wfdata[idx++] = _leftqrg >> 24;
+        wfdata[idx++] = _leftqrg >> 16;
+        wfdata[idx++] = _leftqrg >> 8;
+        wfdata[idx++] = _leftqrg;
         
-        wfdata[idx++] = rightqrg >> 24;
-        wfdata[idx++] = rightqrg >> 16;
-        wfdata[idx++] = rightqrg >> 8;
-        wfdata[idx++] = rightqrg;
+        wfdata[idx++] = _rightqrg >> 24;
+        wfdata[idx++] = _rightqrg >> 16;
+        wfdata[idx++] = _rightqrg >> 8;
+        wfdata[idx++] = _rightqrg;
         
         // frequency where the SDR is tuned in Hz
-        int tqrg = tunedQRG;
+        int tqrg = _tunedQRG;
         wfdata[idx++] = tqrg >> 24;
         wfdata[idx++] = tqrg >> 16;
         wfdata[idx++] = tqrg >> 8;
         wfdata[idx++] = tqrg;
         
         // the resolution in Hz/pixel
-        wfdata[idx++] = resolution >> 24;
-        wfdata[idx++] = resolution >> 16;
-        wfdata[idx++] = resolution >> 8;
-        wfdata[idx++] = resolution;
+        wfdata[idx++] = res >> 24;
+        wfdata[idx++] = res >> 16;
+        wfdata[idx++] = res >> 8;
+        wfdata[idx++] = res;
 
         // offset of the RX frequency to the tuned frequency in Hz
         int foffset = 0; // TODO: activate if the SSB demodulator is implemented
@@ -207,17 +206,16 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
         // draw pixel per pixel
         for(int i=left; i<right; i++)
         {
-            //printf("%d\n\r",getPixelColor(fdata[i]));
-            wfdata[idx++] = getPixelColor(id,fdata[i]);
+            wfdata[idx] = getPixelColor(id,fdata[i]);
+            idx++;
             if(idx >= sizeof(wfdata))
                 break;
         }
         
         // wfdata with length cnt is now filled with data
         // give it to the WebSocket Server
-        ws_send(wfdata,idx);
+        ws_send(wfdata,idx,id);
     }
-    
 }
 
 /*
@@ -227,20 +225,20 @@ void drawWF(int _id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, i
  * - copy the existing waterfall picture, one line to the bottom, which creates the moving picture
  * - add the new data in the top line
  */
-void drawWFimage(gdImagePtr im, char *fn)
+void drawWFimage(int id, gdImagePtr im, char *fn)
 {
     // create destination image
-    gdImagePtr dst = gdImageCreate(pic_width, pic_height);
+    gdImagePtr dst = gdImageCreate(wfvars[id].pic_width, wfvars[id].pic_height);
     // allocate the colors
     allocatePalette(dst);
     
     // draw the existing image into the new destination image
     // Title: copy it as it is
-    gdImageCopy(dst,im,0,0,0,0,pic_width,toprow); 
+    gdImageCopy(dst,im,0,0,0,0,wfvars[id].pic_width,wfvars[id].toprow); 
     // WF: shifted by 1 line (keep the top line empty)
-    gdImageCopy(dst,im,0,toprow+1,0,toprow,pic_width,(pic_height-toprow)-1); 
+    gdImageCopy(dst,im,0,wfvars[id].toprow+1,0,wfvars[id].toprow,wfvars[id].pic_width,(wfvars[id].pic_height-wfvars[id].toprow)-1); 
     // and draw the top line with the new fft data
-    drawFFTline(dst);
+    drawFFTline(id, dst);
     // write to file
     gdImageFile(dst, fn);
     // free ressources
@@ -250,17 +248,17 @@ void drawWFimage(gdImagePtr im, char *fn)
 /*
  * using the new FFT data, create a new waterfall line
  */
-void drawFFTline(gdImagePtr dst)
+void drawFFTline(int id, gdImagePtr dst)
 {
-    int left = leftqrg / resolution;
-    int right = rightqrg / resolution;
+    int left = wfvars[id].leftqrg / wfvars[id].resolution;
+    int right = wfvars[id].rightqrg / wfvars[id].resolution;
     int width = right-left;
     
     // calculate pixel colors
-    calcColorParms(id,left,right,fftdata); 
+    calcColorParms(id,left,right,wfvars[id].fftdata); 
     
     // calculate position of vertical lines
-    int fullwidth = rightqrg - leftqrg;
+    int fullwidth = wfvars[id].rightqrg - wfvars[id].leftqrg;
     char snum[50];
     sprintf(snum,"%d",fullwidth);
     for(int i=1; i<strlen(snum); i++) 
@@ -274,18 +272,18 @@ void drawFFTline(gdImagePtr dst)
     for(int i=left; i<right; i++)
     {
         // scale the frequency to pixel position
-        int xs = ((i-left)*pic_width)/width;
-        int xe = (((i+1)-left)*pic_width)/width;
+        int xs = ((i-left)*wfvars[id].pic_width)/width;
+        int xe = (((i+1)-left)*wfvars[id].pic_width)/width;
         
         // at a 100kHz boundary make a thick white line
-        if(!((i*resolution) % markersteps) && (i != left) && (i != right))
+        if(!((i*wfvars[id].resolution) % markersteps) && (i != left) && (i != right))
         {
-            gdImageLine(dst, xs, toprow, xe, toprow, 253);
+            gdImageLine(dst, xs, wfvars[id].toprow, xe, wfvars[id].toprow, 253);
         }
         else
         {
             // and draw the pixel in the color corresponding to the level
-            gdImageLine(dst, xs, toprow, xe, toprow, getPixelColor(id,fftdata[i]));
+            gdImageLine(dst, xs, wfvars[id].toprow, xe, wfvars[id].toprow, getPixelColor(id,wfvars[id].fftdata[i]));
         }
     }
 }
@@ -293,18 +291,18 @@ void drawFFTline(gdImagePtr dst)
 /*
  * draw the title
  */
-void drawQrgTitles(gdImagePtr dst)
+void drawQrgTitles(int id, gdImagePtr dst)
 {
 char s[50];
     
     allocatePalette(dst);
     
-    int left = leftqrg / resolution;
-    int right = rightqrg / resolution;
+    int left = wfvars[id].leftqrg / wfvars[id].resolution;
+    int right = wfvars[id].rightqrg / wfvars[id].resolution;
     int width = right-left;
     
     // calculate position of vertical lines
-    int fullwidth = rightqrg - leftqrg;
+    int fullwidth = wfvars[id].rightqrg - wfvars[id].leftqrg;
     char snum[50];
     sprintf(snum,"%d",fullwidth);
     for(int i=1; i<strlen(snum); i++) 
@@ -316,12 +314,12 @@ char s[50];
     for(int i=left; i<right; i++)
     {
         // insert title text
-        if(!((i*resolution) % markersteps) && (i != left) && (i != right))
+        if(!((i*wfvars[id].resolution) % markersteps) && (i != left) && (i != right))
         {
             // scale the frequency to pixel position
-            int xs = ((i-left)*pic_width)/width;
+            int xs = ((i-left)*wfvars[id].pic_width)/width;
             
-            sprintf(s,"%.6f",(double)((double)tunedQRG + i*(double)resolution)/1e6);
+            sprintf(s,"%.6f",(double)((double)wfvars[id].tunedQRG + i*(double)wfvars[id].resolution)/1e6);
             gdImageString (dst,gdFontGetSmall(),xs-25,2,(unsigned char *)s,253);
         }
     }

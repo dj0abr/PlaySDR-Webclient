@@ -2,7 +2,7 @@ CFLAGS?=-O3 -Wall -I./websocket
 LDLIBS+= -lpthread -lm -lmirsdrapi-rsp -lfftw3 -lsndfile -lasound -lgd -lz -ljpeg -lfreetype
 CC?=gcc
 PROGNAME=playSDRweb
-OBJ=playSDRweb.o soundcard.o sdrplay.o sampleprocessing.o fir_table_calc.o waterfall.o fft.o wf_univ.o color.o websocket/websocketserver.o websocket/ws_callbacks.o websocket/base64.o websocket/sha1.o websocket/ws.o websocket/handshake.o
+OBJ=playSDRweb.o sdrplay.o sampleprocessing.o fir_table_calc.o waterfall.o fft.o wf_univ.o color.o websocket/websocketserver.o websocket/ws_callbacks.o websocket/base64.o websocket/sha1.o websocket/ws.o websocket/handshake.o ssb.o hilbert90.o downmixer.o audio.o
 
 all: playSDRweb
 

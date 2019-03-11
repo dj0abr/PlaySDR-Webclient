@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <sys/time.h>
 #include <sys/types.h>
 
-#include "ws.h"
+#include "websocketserver.h"
 
 extern int usleep (__useconds_t __useconds);
 
@@ -425,6 +425,6 @@ int ws_socket(struct ws_events *evs, int port)
 		if ( pthread_create(&client_thread, NULL, ws_establishconnection, (void*)(intptr_t) new_sock) < 0)
 			perror("Could not create the client thread!");
 
-		pthread_detach(client_thread);
+		pthread_detach(client_thread); // automatically release all ressources as soon as the thread is done
 	}
 }

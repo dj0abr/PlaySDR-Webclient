@@ -43,6 +43,7 @@
 #include "sdrplay.h"
 #include "waterfall.h"
 #include "fir_table_calc.h"
+#include "ssb.h"
 
 // the low pass filter is time critical !
 // save some CPU time by inlining this code
@@ -117,8 +118,8 @@ static int idx = 0;
                     draw_waterfall(isamp, qsamp, idx);
                 }
 
-                // decode and play the audio
-                //process_samples(isamp, qsamp, idx);
+                // decode, draw small waterfall and play the audio
+                process_samples(isamp, qsamp, idx);
                 idx = 0;
             }
             idx++;

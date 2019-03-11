@@ -41,6 +41,7 @@ void onopen(int fd)
 {
 	char *cli;
 	cli = ws_getaddress(fd);
+    insert_socket(fd);
 	printf("Connection opened, client: %d | addr: %s\n", fd, cli);
 	free(cli);
 }
@@ -50,6 +51,7 @@ void onclose(int fd)
 {
 	char *cli;
 	cli = ws_getaddress(fd);
+    remove_socket(fd);
 	printf("Connection closed, client: %d | addr: %s\n", fd, cli);
 	free(cli);
 }
@@ -57,7 +59,32 @@ void onclose(int fd)
 // if avaiable, send data to a browser
 void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1)
 {
-    // ws_sendframe_binary(fd, pixdata+1, len-1); // send without first id counter
+    for(int i=0; i<MAX_CLIENTS; i++)
+    {
+        if(actsock[i].socket == fd)
+        {
+            // this is our entry in the socket table
+            if(actsock[i].send0 == 1)
+            {
+                // there is something to be sent
+                unsigned char pixdata[MESSAGE_LENGTH * 2];
+
+                memcpy(pixdata, actsock[i].msg0+1, actsock[i].msglen0-1);
+                int len = actsock[i].msglen0-1;
+                
+                if(actsock[i].send1 == 1)
+                {
+                    memcpy(pixdata + len, actsock[i].msg1, actsock[i].msglen1);
+                    len += actsock[i].msglen1;
+                }
+                
+                ws_sendframe_binary(fd, pixdata, len);
+                actsock[i].send0 = 0;
+                actsock[i].send1 = 0;
+                return;
+            }
+        }
+    }
 }
 
 // received a Websocket Message from a browser

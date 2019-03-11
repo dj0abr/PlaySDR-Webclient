@@ -28,10 +28,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include "soundcard.h"
 #include "sdrplay.h"
 #include "sampleprocessing.h"
 #include "fft.h"
+#include "audio.h"
+#include "downmixer.h"
+#include "ssb.h"
+#include "wf_univ.h"
 #include "websocketserver.h"
 
 void sighandler(int signum)
@@ -75,18 +78,28 @@ int main()
     printf("1st decim. rate: %d\n",DECIMATERATE);
     printf("1st FFT resol.:  %d Hz\n",FFT_RESOLUTION);
     printf("1st FTT smp/pass:%d\n",SAMPLES_FOR_FFT);
+    printf("SSB audio rate  :%d\n",SSB_RATE);
+    printf("SSB audio decim :%d\n",SSB_DECIMATE);
+    printf("2nd FFT resol.  :%d\n",FFT_RESOLUTION_SMALL);
+    printf("2nd FTT smp/pass:%d\n",SAMPLES_FOR_FFT_SMALL);
     
-    // initialize soundcard for playback of the demodulated audio
-    init_soundcard();
-    
-    // init the 2.4M -> 480k anti aliasing filters
+    // init anti aliasing filters
     init_hs_filters();
     
     // init the FFT for the big waterfall
     init_ffts();
     
+    // init downmixer
+    downmixer_init(SAMPLERATE_FIRST);
+    
+    // init waterfall drawing
+    init_wf_univ();
+    
     // init the Websocket Server
     ws_init();
+    
+    // init audio output
+    init_soundcard("pulse", SSB_RATE);
     
     printf("\nInitialisation complete, system running ... stop with Ctrl-C\n");
     

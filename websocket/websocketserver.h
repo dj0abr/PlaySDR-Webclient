@@ -28,7 +28,18 @@
 
 #define WS_FR_OP_UNSUPPORTED 0xF
 
-/* Events. */
+// list of sockets, -1=inactive
+typedef struct {
+    int socket;     // socket id
+    unsigned char msg0[MESSAGE_LENGTH];  // big waterfall message to send to the browser
+    unsigned char msg1[MESSAGE_LENGTH];  // small waterfall message to send to the browser
+    int msglen0;
+    int msglen1;
+    int send0;       // 0=nothing to send, 1=send now
+    int send1;
+} WS_SOCK;
+
+// Events
 struct ws_events
 {
 	/* void onopen(int fd); */
@@ -53,8 +64,12 @@ int   ws_sendframe_binary(int fd, unsigned char *msg, uint64_t length);
 int   ws_socket(struct ws_events *evs, int port);
 
 void ws_init();
-void ws_send(unsigned char *pwfdata, int idx);
+void ws_send(unsigned char *pwfdata, int idx, int wf_id);
 void onopen(int fd);
 void onclose(int fd);
 void onmessage(int fd, unsigned char *message);
 void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1);
+void insert_socket(int fd);
+void remove_socket(int fd);
+
+extern WS_SOCK actsock[MAX_CLIENTS];

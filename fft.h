@@ -18,7 +18,9 @@ typedef struct {
 
 enum _FFT_IDs_ {
     FFTID_BIG = 0,
+    FFTID_SMALL,
+    FFTID_MAX
 };
 
-extern FFT_DATA fftd[10];               // space for up to 10 FFTs
+extern FFT_DATA fftd[FFTID_MAX];               // space for up to 10 FFTs
 extern double fftData[SDR_SAMPLE_RATE];

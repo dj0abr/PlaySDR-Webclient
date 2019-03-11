@@ -51,10 +51,11 @@
 void init_ffts()
 {
     uFFT_init(FFTID_BIG, SAMPLERATE_FIRST, SAMPLES_FOR_FFT);
+    uFFT_init(FFTID_SMALL, SSB_RATE, SAMPLES_FOR_FFT_SMALL);
 }
 
 // this structure can store the definitions of up to 10 FFTs
-FFT_DATA fftd[10];   // max id is 10-1
+FFT_DATA fftd[FFTID_MAX];   // max id is 10-1
 
 /*
  * init the FFT
@@ -67,7 +68,7 @@ void uFFT_init(int id, int capRate, int sampPerPass)
 {
 char fn[256];
 
-    sprintf(fn,"uFFT_wisdom_%d_%d:%d",capRate,sampPerPass,id);
+    sprintf(fn,"uFFT_wisdom_%d_%d_%d",capRate,sampPerPass,id);
     
     fftd[id].sampPerPass = sampPerPass;
     
@@ -128,7 +129,7 @@ void uFFT_calc(int id, int mode, int wf_width)
 {
     // the FFT input array is filled, we can do the fft
     fftw_execute(fftd[id].uFFT_plan);
-
+    
     // the FFT generates:
     // 0..rate/2 :     Spectrum from 0 to samplerate/2
     // rate/2..rate:   Spectrum from -samplerate/2 to 0 in reverse order

@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 #include "sha1.h"
 #include "base64.h"
-#include "ws.h"
+#include "websocketserver.h"
 
 #include <stdio.h>
 #include <string.h>

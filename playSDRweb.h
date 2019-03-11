@@ -35,10 +35,11 @@
 // attention: the expression (SDR_SAMPLE_RATE / 2 / WF_RANGE_HZ) HAS to 
 // be an integer number without decimal places !!!
 // (the following alternatives are integer numbers if the sampling rate is 2.4MS/s)
-//#define WF_RANGE_HZ        400000       // (first downsampled rate: 800000)
-// #define WF_RANGE_HZ        300000       // (first downsampled rate: 600000)
+// !!! if the SDR_SAMPLE_RATE is changes, these values must be recalculated !!! (see also SSB_RATE below)
+// #define WF_RANGE_HZ        400000       // (first downsampled rate: 800000)
+#define WF_RANGE_HZ        300000       // (first downsampled rate: 600000)
 // #define WF_RANGE_HZ        240000       // (first downsampled rate: 480000)
- #define WF_RANGE_HZ        200000       // (first downsampled rate: 400000) 
+// #define WF_RANGE_HZ        200000       // (first downsampled rate: 400000) 
 // #define WF_RANGE_HZ        150000       // (first downsampled rate: 300000)
 // #define WF_RANGE_HZ        120000       // (first downsampled rate: 240000)
 //#define WF_RANGE_HZ        100000       // (first downsampled rate: 200000)
@@ -47,17 +48,19 @@
 #define WF_WIDTH    1000
 
 // the height of the waterfall picture (ignored in WF_MODE_WEBSOCKET)
-#define WF_HEIGHT   400     
+#define WF_HEIGHT   400
+// the height of the SSB waterfall picture (ignored in WF_MODE_WEBSOCKET)
+#define WF_HEIGHT_SMALL   200     
 
 // drawing mode (see waterfall.c), choose FILE or WEBSOCKET mode
-#define WF_MODE_FILE     // draw a waterfall picture into a file
-//#define WF_MODE_WEBSOCKET   // create one line using the actual data and send it to a browser
+// #define WF_MODE_FILE     // draw a waterfall picture into a file
+#define WF_MODE_WEBSOCKET   // create one line using the actual data and send it to a browser
 
 // tuned frequency, the base frequency where the SDR hardware is tuned
 // this is similar to the left margin of the big waterfall picture
 // and therefore should be the lowest frequency of interest (i.e. beginning of a band)
 // for the Sat es'hail 2 this should be: 10489500000 Hz (= 10.4895 GHz)
-#define TUNED_FREQUENCY     7000000     // 40 band
+#define TUNED_FREQUENCY     999990000     // 40 band
 
 // Websocket Port
 // the computer running this software must be reachable under this port
@@ -75,3 +78,31 @@
 #define FFT_RESOLUTION      (WF_RANGE_HZ / WF_WIDTH)       // frequency step from one FFT value to the next
 #define SAMPLES_FOR_FFT     (SAMPLERATE_FIRST / FFT_RESOLUTION)     // required samples for the FFT to generate to requested resolution
 
+// the SSB audio rate must be an integer part of SAMPLERATE_FIRST
+// and must be <= 48k
+// and must be an integer value
+// assign the SSB audio rate for above WF_RANGE_HZ values
+// !!! if the SDR_SAMPLE_RATE is changes, these values must be recalculated !!!
+#define DEFAULT_SSB_RATE    48000
+
+#if WF_RANGE_HZ == 400000
+    #define SSB_RATE 40000
+    
+#elif WF_RANGE_HZ == 300000
+    #define SSB_RATE 40000
+    
+#elif WF_RANGE_HZ == 200000
+    #define SSB_RATE 40000
+    
+#elif WF_RANGE_HZ == 150000
+    #define SSB_RATE 37500
+    
+#elif WF_RANGE_HZ == 100000
+    #define SSB_RATE 40000
+#else
+    #define SSB_RATE DEFAULT_SSB_RATE  // use default rate if possible
+#endif
+
+#define SSB_DECIMATE    (SAMPLERATE_FIRST / SSB_RATE)
+#define FFT_RESOLUTION_SMALL (SSB_RATE / 2 / WF_WIDTH)
+#define SAMPLES_FOR_FFT_SMALL     (SSB_RATE / FFT_RESOLUTION_SMALL)
