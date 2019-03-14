@@ -420,6 +420,7 @@ int ws_socket(struct ws_events *evs, int port)
 			perror("Error on accepting conections..");
 			exit(-1);
 		}
+		printf("==*===\n");
 
 		pthread_t client_thread;
 		if ( pthread_create(&client_thread, NULL, ws_establishconnection, (void*)(intptr_t) new_sock) < 0)

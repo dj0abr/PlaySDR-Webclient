@@ -33,7 +33,7 @@
 
 snd_pcm_t *playback_handle=NULL;
 
-void play_samples(double *samp, int len)
+int play_samples(double *samp, int len)
 {   
 static int pbfirst = 1;
 int err;
@@ -49,7 +49,7 @@ int err;
     
 	if ((err = snd_pcm_writei(playback_handle, samples, len)) != len) {
 		printf("write to audio interface failed (%s)\n", snd_strerror(err));
-		exit(0);
+		return 0;
 	}
  
 	// write the first frame many times to fill the buffer and aviod underrun
@@ -62,10 +62,11 @@ int err;
         {
             if ((err = snd_pcm_writei(playback_handle, samples, len)) != len) {
                 printf("1:write to audio interface failed (%s)\n", snd_strerror(err));
-                return;
+                return 0;
             }
         }
 	}
+	return 1;
 }
 
 // initialize the sound device for playback

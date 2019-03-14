@@ -61,6 +61,9 @@ static int idx = 0;
             // usually we would need an anti aliasing filter for SSB_RATE here
             // but the Hilbert Filter BandPassm45deg and BandPass45deg
             
+            //xi[i] >>= 8;
+            //xq[i] >>= 8;
+            
             isamples[idx] = (xi[i]);
             qsamples[idx] = (xq[i]);
             
@@ -72,7 +75,7 @@ static int idx = 0;
 
             // Audio band low pass
             // optional: usbsamples[idx] = audio_lowPass(usbsamples[idx]);
-            float vol = 20;
+            float vol = 1;
             usbsamples[idx] *= vol;
             
             // draw small WF
@@ -108,7 +111,10 @@ static int idx = 0;
                 //wf_drawWF(1,fftd[1].fftData, cnt, (fright-fleft)/res, 1, fleft,fright,res,frequency+foffset-(fright-fleft)/2,"/tmp/wfsmall.pix");
 
                 // play the audio to the soundcard
-                play_samples(usbsamples, SAMPLES_FOR_FFT_SMALL);
+                if(play_samples(usbsamples, SAMPLES_FOR_FFT_SMALL) == 0)
+                {
+                    init_soundcard("pulse", SSB_RATE);
+                }
                 idx = 0;
             }
             idx++;

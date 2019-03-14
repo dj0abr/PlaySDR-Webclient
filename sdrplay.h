@@ -1,6 +1,6 @@
 #include "playSDRweb.h"
 
-void init_SDRplay();
+int init_SDRplay();
 void remove_SDRplay();
 void streamCallback(short *xi, short *xq, unsigned int firstSampleNum,
     int grChanged, int rfChanged, int fsChanged, unsigned int numSamples,

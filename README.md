@@ -22,12 +22,16 @@ But I use 2.4Msamples, so later on this can be compatible for
 i.e. RTL sticks and others.
 
 # this is WORK in PROGRESS
-actual Status: this is the first working version
+actual Status: 
 1) Setup: playSDRweb.h
 2) compile and start
-3) it plays the audio of the tuned frequency + 10 kHz
+3) copy the html file to your web server directory (i.e. /var/www/html)
+   the web server must be running
+3) open a web browser and open the html web site
 
-next to come: selecting the audio in the waterfall by mouse click
+the waterfall muss be running. Click into the big waterfall the select the listening frequency.
+The base frequency is set in playSDRweb.h (the qrg button is not working for now)
+
 
 Prerequisites:
 ==============

@@ -57,7 +57,7 @@ long setPoint = -30;
  * streamCallback
  * will be called delivering new samples
  */
-void init_SDRplay()
+int init_SDRplay()
 {
     printf("Initialize SDRplay hardware\n");
     mir_sdr_DeviceT devices[4];
@@ -78,12 +78,12 @@ void init_SDRplay()
 
     if (devAvail == 0) {
         printf("ERROR: No RSP devices available.\n");
-        exit(1);
+        return 0;
     }
 
     if (devices[device].devAvail != 1) {
         printf("ERROR: RSP selected (%d) is not available.\n", (device + 1));
-        exit(1);
+        return 0;
     }
     
     // read device information and initialize
@@ -144,6 +144,8 @@ void init_SDRplay()
             mir_sdr_RSPII_BiasTControl(0);
         }
     }
+    
+    return 1;
 }
 
 // clean up SDRplay device

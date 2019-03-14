@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <rtl-sdr.h>
 #include "sdrplay.h"
 #include "sampleprocessing.h"
 #include "fft.h"
@@ -37,18 +38,24 @@
 #include "wf_univ.h"
 #include "setqrg.h"
 #include "websocketserver.h"
+#include "rtlsdr.h"
+#include "fifo.h"
+
+int hwtype = 0; // 1=playSDR, 2=rtlsdr
 
 void sighandler(int signum)
 {
 	printf("signal %d, exit program\n",signum);
-    remove_SDRplay();
+    if(hwtype == 1) remove_SDRplay();
+    if(hwtype == 2) rtlsdr_close(0);
     exit(0);
 }
 
 void sighandler_mem(int signum)
 {
 	printf("memory error, signal %d, exit program\n",signum);
-    remove_SDRplay();
+    if(hwtype == 1) remove_SDRplay();
+    if(hwtype == 2) rtlsdr_close(0);
     exit(0);
 }
 
@@ -90,6 +97,9 @@ int main()
     // init the FFT for the big waterfall
     init_ffts();
     
+    // init the FIFO
+    initpipe();
+    
     // init downmixer
     downmixer_init(SAMPLERATE_FIRST);
     
@@ -107,7 +117,23 @@ int main()
     // init SDRplay hardware
     // this MUST be the LAST initialisation because
     // the callback starts immediately after init_SDRplay
-    init_SDRplay();
+    if(init_rtlsdr())
+    {
+        hwtype = 2;
+        samplesPerPacket = SAMPLES_PER_PASS;
+    }
+    
+    if(hwtype == 0)
+    {
+        init_SDRplay();
+        hwtype = 1;
+    }
+    
+    if(hwtype == 0)
+    {
+        printf("no SDR hardware found. Exit\n");
+        exit(0);
+    }
 
     // infinite loop, 
     // stop program with Ctrl-C
@@ -116,6 +142,8 @@ int main()
         set_frequency();
         usleep(1000);
     }
+    
+    removepipe();
     
     return 0;
 }

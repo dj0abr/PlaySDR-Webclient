@@ -70,10 +70,12 @@ static int idx = 0;
 
     if(numSamples > samplesPerPacket)
     {
-        printf("ignore :%d\n",numSamples);
+        printf("ignore :%d should be less then %d\n",numSamples,samplesPerPacket);
         return;
     }
-
+    
+    //measure_samplerate(0,numSamples,10);            
+    
     /*
      * decimation is a very simple process. It just takes every DECIMATERATE sample
      * and ignores the rest
@@ -85,6 +87,7 @@ static int idx = 0;
         // take every DECIMATERATE sample
         if(++decimate >= DECIMATERATE)
         {
+            //measure_samplerate(1,1,8000);
             decimate = 0;
 
             // feed the I and Q samples through the anti aliasing low pass filter
@@ -95,6 +98,8 @@ static int idx = 0;
             }
             isamp[idx] = hsi_fir_filter(xi[i]);
             qsamp[idx] = hsq_fir_filter(xq[i]);
+            
+            //printf("%d %d\n",isamp[idx],qsamp[idx]);
             
             // here we have a rate of 480k Samples
             // wait until we have SAMPLES_FOR_FFT samples, then continue
