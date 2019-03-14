@@ -23,6 +23,7 @@ i.e. RTL sticks and others.
 
 # this is WORK in PROGRESS
 actual Status: 
+working with the playSDR and the RTLsdr stick (and compatibles)
 1) Setup: playSDRweb.h
 2) compile and start
 3) copy the html file to your web server directory (i.e. /var/www/html)
