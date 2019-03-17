@@ -45,6 +45,7 @@
 #include <pthread.h>
 #include "websocketserver.h"
 #include "../playSDRweb.h"
+#include "../fifo.h"
 
 WS_SOCK actsock[MAX_CLIENTS];
 
@@ -122,6 +123,80 @@ void ws_send(unsigned char *pwfdata, int idx, int wf_id)
         }
     }
     UNLOCK;
+}
+
+unsigned char *ws_build_txframe(int i, int *plength)
+{
+    LOCK;
+    
+    unsigned char samples[AUDIO_RATE*2];
+    int len = read_pipe(FIFO_AUDIOWEBSOCKET, samples, AUDIO_RATE*2);
+    if(len)
+    {
+        int idx = 0;
+        unsigned char *txdata = malloc(len+3);
+        //printf("audio:%d\n",len);
+        txdata[idx++] = 2;    // type of audio samples
+        txdata[idx++] = len >> 8;
+        txdata[idx++] = len & 0xff;
+        memcpy(txdata+idx,samples,len);
+        idx += len;
+
+        *plength = idx;
+        UNLOCK;
+        return txdata;
+    }
+    
+    // calculate total length
+    // add 3 for each element for the first byte which is the element type followed by the length
+    int geslen = 0;
+    if(actsock[i].send0 == 1) geslen += (actsock[i].msglen0 + 3);
+    if(actsock[i].send1 == 1) geslen += (actsock[i].msglen1 + 3);
+    
+    if(geslen < 10) 
+    {
+        UNLOCK;
+        return NULL;
+    }
+    
+    // assign TX buffer
+    unsigned char *txdata = malloc(geslen);
+    
+    // copy data into TX buffer and set the type byte
+    int idx = 0;
+    if(actsock[i].send0 == 1) 
+    {
+        txdata[idx++] = 0;    // type of big WF
+        txdata[idx++] = actsock[i].msglen0 >> 8;
+        txdata[idx++] = actsock[i].msglen0 & 0xff;
+        memcpy(txdata+idx,actsock[i].msg0,actsock[i].msglen0);
+        idx += actsock[i].msglen0;
+    }
+    
+    if(actsock[i].send1 == 1) 
+    {
+        txdata[idx++] = 1;    // type of small WF
+        txdata[idx++] = actsock[i].msglen1 >> 8;
+        txdata[idx++] = actsock[i].msglen1 & 0xff;
+        memcpy(txdata+idx,actsock[i].msg1,actsock[i].msglen1);
+        idx += actsock[i].msglen1;
+    }
+    
+/*    if(len > 0)
+    {
+        //printf("audio:%d\n",len);
+        txdata[idx++] = 2;    // type of audio samples
+        txdata[idx++] = len >> 8;
+        txdata[idx++] = len & 0xff;
+        memcpy(txdata+idx,samples,len);
+        idx += len;
+    }*/
+    
+    
+    *plength = idx;
+    
+    UNLOCK;
+    return txdata;
 }
 
 // insert a socket into the socket-list

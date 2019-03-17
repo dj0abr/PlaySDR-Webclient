@@ -117,7 +117,7 @@ static int idx = 0;
                 // increasing this number makes the waterfall slower and 
                 // needs less CPU time
                 // for maximum speed: 1
-                if(++wfdelay >= 1)  
+                if(++wfdelay >= 10)  
                 {
                     wfdelay = 0;
                     draw_waterfall(isamp, qsamp, idx);

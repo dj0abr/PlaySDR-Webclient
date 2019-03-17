@@ -37,10 +37,13 @@
 #include "downmixer.h"
 #include "setqrg.h"
 #include "fir_table_calc.h"
+#include "playSDRweb.h"
+#include "fifo.h"
 
 short isamples[DEFAULT_SSB_RATE];
 short qsamples[DEFAULT_SSB_RATE];
 double usbsamples[DEFAULT_SSB_RATE];
+short b16samples[AUDIO_RATE];
 
 // gets the samples with SAMPLERATE_FIRST Samplerate
 // we make further processing with SSB_RATE, so decimate by SSB_DECIMATE
@@ -48,6 +51,8 @@ void process_samples(short *xi, short *xq, int numSamples)
 {
 static int decimate = 0;
 static int idx = 0;
+static int audiodecimate = 0;
+static int audioidx = 0;
 
     for(int i=0; i<numSamples; i++)
     {
@@ -61,9 +66,6 @@ static int idx = 0;
             // usually we would need an anti aliasing filter for SSB_RATE here
             // but the Hilbert Filter BandPassm45deg and BandPass45deg
             
-            //xi[i] >>= 8;
-            //xq[i] >>= 8;
-            
             isamples[idx] = (xi[i]);
             qsamples[idx] = (xq[i]);
             
@@ -76,6 +78,7 @@ static int idx = 0;
             // Audio band low pass
             // optional: usbsamples[idx] = audio_lowPass(usbsamples[idx]);
             float vol = 1;
+            if(hwtype == 1) vol = 20;
             usbsamples[idx] *= vol;
             
             // draw small WF
@@ -106,14 +109,53 @@ static int idx = 0;
                     height = 1;
                 #endif
                 
-                drawWF(WFID_SMALL,pfdata, width, width, height, fleft, fright, FFT_RESOLUTION_SMALL, frequency+foffset-(fright-fleft)/2, filename);
-                
-                //wf_drawWF(1,fftd[1].fftData, cnt, (fright-fleft)/res, 1, fleft,fright,res,frequency+foffset-(fright-fleft)/2,"/tmp/wfsmall.pix");
-
-                // play the audio to the soundcard
-                if(play_samples(usbsamples, SAMPLES_FOR_FFT_SMALL) == 0)
+                static int wfdelay = 0;
+                // increasing this number makes the waterfall slower and 
+                // needs less CPU time
+                // for maximum speed: 1
+                if(++wfdelay >= 1)  
                 {
-                    init_soundcard("pulse", SSB_RATE);
+                    wfdelay = 0;
+                    drawWF(WFID_SMALL,pfdata, width, width, height, fleft, fright, FFT_RESOLUTION_SMALL, frequency+foffset-(fright-fleft)/2, filename);
+                }
+
+                // the stream here has SSB_RATE which is required for a nice waterfall
+                // for Audio we need less, 8k samples is good enough
+                // lets decimate it to 8000 samples/s
+                
+                // here we have SAMPLES_FOR_FFT_SMALL samples in usbsamples
+                // with a rate of SSB_RATE
+                // copy into the audio buffer and decimate by AUDIO_DECIMATE
+                for(int i=0; i<SAMPLES_FOR_FFT_SMALL; i++)
+                {
+                    if(++audiodecimate >= AUDIO_DECIMATE)
+                    {
+                        audiodecimate = 0;
+                        b16samples[audioidx++] = usbsamples[i];
+                        
+                        // we collect audiocollect samples and then put it into the fifo
+                        // audiocollect must be an even number !
+                        
+                        // direct playpack through soundcard:
+                        // audiocollect should be a low value, but high enough
+                        // so we do not get a broken pipe in audio playback.
+                        
+                        // playback via WebSocket:
+                        // one transmission must be done every AUDIO_RATE/audiocollect
+                        // so if audiocollect == AUDIO_RATE we send one packet every second
+                        
+                        int audiocollect = 8000; 
+                        if(audioidx >= audiocollect)
+                        {
+                            audioidx = 0;
+                            // *2 because we send short as uint8
+                            // send to soundcard
+                            //write_pipe(FIFO_AUDIO, (unsigned char *)b16samples, audiocollect*2);
+                            
+                            // send to websocket
+                            write_pipe(FIFO_AUDIOWEBSOCKET, (unsigned char *)b16samples, audiocollect*2);
+                        }
+                    }
                 }
                 idx = 0;
             }

@@ -108,7 +108,7 @@ char write_pipe(int pipenum, unsigned char *data, int len)
 	// prüfe ob im Fifo noch Platz ist
 	if (((*pwridx + 1) % BUFFER_LENGTH) == rdidx[pipenum])
 	{
-        printf("FIFO full: %d\n",pipenum);
+        //printf("FIFO full: %d\n",pipenum);
 		UNLOCK(pipenum);
 		return 0;
 	}

@@ -21,7 +21,10 @@
 *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 * 
 * 
-* audio.c ... play the demodulated samples to the sound card
+* audio.c ... 
+* 1) play the demodulated samples to the sound card
+* 2) write the samples into a fifo (which is read by
+* the WebSocket Server and set to the browsers)
 * 
 */
 
@@ -30,53 +33,101 @@
 #include <sndfile.h>
 #include <time.h>
 #include <sys/time.h>
+#include "fifo.h"
+#include "audio.h"
+#include "playSDRweb.h"
+
+void *audioproc(void *pdata);
+void expand_stereo(short *samples, int len);
 
 snd_pcm_t *playback_handle=NULL;
+char *snddevice = {"pulse"};
 
-int play_samples(double *samp, int len)
-{   
-static int pbfirst = 1;
-int err;
-
-	// the USB demodulated samples are now in samp
-	// convert to 16 bit and double for stereo output
-    short samples[len * 2];
-    for (int i = 0; i < len; i++)
+void init_soundprocessing()
+{
+    pthread_t audio_pid = 0;
+    
+    int ret = pthread_create(&audio_pid,NULL,audioproc, NULL);
+    if(ret)
     {
-        samples[i*2] = (short)(samp[i]);
-        samples[i*2+1] = (short)(samp[i]);
+        printf("init_soundprocessing: proc NOT started\n\r");
+    }
+}
+
+
+void *audioproc(void *pdata)
+{
+short samples[AUDIO_RATE*2];
+
+    // this thread must terminate itself because
+    // the parent does not want to wait
+    pthread_detach(pthread_self()); 
+    
+    while(1)
+    {
+        int len = read_pipe_wait(FIFO_AUDIO, (unsigned char *)samples, AUDIO_RATE*2);
+        expand_stereo(samples, len/2);
+        play_samples(samples, len/2);
     }
     
-	if ((err = snd_pcm_writei(playback_handle, samples, len)) != len) {
-		printf("write to audio interface failed (%s)\n", snd_strerror(err));
-		return 0;
-	}
- 
-	// write the first frame many times to fill the buffer and aviod underrun
-	if (pbfirst == 1)
-	{
-		pbfirst = 0;
-        // this may introduce a delay, so keep this as short as possible
-        // if its too short, an sound underrun will occur
-        for(int i=0; i<10; i++)
+    pthread_exit(NULL); // self terminate this thread
+}
+
+// expand the mono stream to expand_stereo
+// by simple doubling the samples
+void expand_stereo(short *samples, int len)
+{
+    for(int i=(len-1); i>=0; i--)
+    {
+        samples[i*2] = samples[i];
+        samples[i*2+1] = samples[i];
+    }
+}
+
+int play_samples(short *samples, int len)
+{   
+int err;
+
+    if(playback_handle == NULL)
+    {
+        int ret = init_soundcard(snddevice);
+        if(ret == 1)
         {
-            if ((err = snd_pcm_writei(playback_handle, samples, len)) != len) {
-                printf("1:write to audio interface failed (%s)\n", snd_strerror(err));
-                return 0;
+            for(int i=0; i<4; i++)
+            {
+                if ((err = snd_pcm_writei(playback_handle, samples, len)) != len) 
+                {
+                    printf("%d: write to audio interface failed len:%d ret:%d (%s)\n", i, len, err, snd_strerror(err));
+                    playback_handle = NULL;
+                    return 0;
+                }
             }
+            return 1;
         }
-	}
-	return 1;
+        return 0;
+    }
+    else
+    {
+        if ((err = snd_pcm_writei(playback_handle, samples, len)) != len) 
+        {
+            printf("write to audio interface failed len:%d ret:%d (%s)\n", len, err, snd_strerror(err));
+            playback_handle = NULL;
+            return 0;
+        }
+        return 1;
+    }
 }
 
 // initialize the sound device for playback
 // usually I use "pulse" as sndcard because then
 // we can use pavucontrol to control and route the audio
-void init_soundcard(char *sndcard, unsigned int rate)
+int init_soundcard(char *sndcard)
 {
-	int err;
+	int err = 0;
 	int channels = 2;
 	snd_pcm_hw_params_t *hw_params;
+    
+    int rate = AUDIO_RATE;
     
     printf("open %s\n\r",sndcard);
 
@@ -106,9 +157,11 @@ void init_soundcard(char *sndcard, unsigned int rate)
         
     }
 
-    else if ((err = snd_pcm_hw_params_set_rate_near(playback_handle, hw_params, &rate, 0)) < 0) {
+    //else if ((err = snd_pcm_hw_params_set_rate_near(playback_handle, hw_params, &rate, 0)) < 0) {
+    else if ((err = snd_pcm_hw_params_set_rate(playback_handle, hw_params, rate, 0)) < 0) 
+    {
         printf("please disable playback. cannot set sample rate (%s)\n", snd_strerror(err));
-        
+        exit(0);
     }
 
     else if ((err = snd_pcm_hw_params_set_channels(playback_handle, hw_params, channels)) < 0) {
@@ -129,4 +182,12 @@ void init_soundcard(char *sndcard, unsigned int rate)
             
         }
     }
+    if(err < 0)
+    {
+        if (playback_handle) snd_pcm_close(playback_handle);
+        playback_handle = NULL;
+        printf("error, audio not opened\n");
+        return 0;
+    }
+    return 1;
 }

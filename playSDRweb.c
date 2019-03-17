@@ -42,11 +42,14 @@
 #include "fifo.h"
 
 int hwtype = 0; // 1=playSDR, 2=rtlsdr
+int samplesPerPacket;
 
 void sighandler(int signum)
 {
 	printf("signal %d, exit program\n",signum);
+    #ifdef SDR_PLAY
     if(hwtype == 1) remove_SDRplay();
+    #endif
     if(hwtype == 2) rtlsdr_close(0);
     exit(0);
 }
@@ -54,7 +57,9 @@ void sighandler(int signum)
 void sighandler_mem(int signum)
 {
 	printf("memory error, signal %d, exit program\n",signum);
+    #ifdef SDR_PLAY
     if(hwtype == 1) remove_SDRplay();
+    #endif
     if(hwtype == 2) rtlsdr_close(0);
     exit(0);
 }
@@ -110,7 +115,7 @@ int main()
     ws_init();
     
     // init audio output
-    init_soundcard("pulse", SSB_RATE);
+    init_soundprocessing();
     
     printf("\nInitialisation complete, system running ... stop with Ctrl-C\n");
     
@@ -122,13 +127,15 @@ int main()
         hwtype = 2;
         samplesPerPacket = SAMPLES_PER_PASS;
     }
-    
+
+#ifdef SDR_PLAY
     if(hwtype == 0)
     {
         init_SDRplay();
         hwtype = 1;
     }
-    
+#endif   
+
     if(hwtype == 0)
     {
         printf("no SDR hardware found. Exit\n");

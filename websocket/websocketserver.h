@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#define MESSAGE_LENGTH 3000
+#define MESSAGE_LENGTH 30000
 #define MAX_CLIENTS    20
 
 #define WS_KEY_LEN     24
@@ -71,5 +71,6 @@ void onmessage(int fd, unsigned char *message);
 void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1);
 void insert_socket(int fd);
 void remove_socket(int fd);
+unsigned char *ws_build_txframe(int i, int *plength);
 
 extern WS_SOCK actsock[MAX_CLIENTS];

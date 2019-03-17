@@ -167,7 +167,7 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         
         // idcnt ... number of this dataset, used to detect if the dataset was handled already
         wfdata[idx++] = idcnt++;
-        // waterfalle id, in case we have more waterfalls
+        // waterfall id, in case we have more waterfalls
         wfdata[idx++] = id;
         
         // offset of the left and right margin of the picture in Hz
@@ -180,6 +180,7 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         wfdata[idx++] = _rightqrg >> 16;
         wfdata[idx++] = _rightqrg >> 8;
         wfdata[idx++] = _rightqrg;
+        //printf("left: %d right: %d\n",_leftqrg,_rightqrg);
         
         // frequency where the SDR is tuned in Hz
         int tqrg = _tunedQRG;
@@ -214,6 +215,7 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         
         // wfdata with length cnt is now filled with data
         // give it to the WebSocket Server
+
         ws_send(wfdata,idx,id);
     }
 }

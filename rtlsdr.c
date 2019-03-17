@@ -66,7 +66,7 @@ int init_rtlsdr()
     retval = rtlsdr_set_sample_rate(dev, SDR_SAMPLE_RATE);
     if(retval != 0) printf("Sample rate %d set= %d\n",SDR_SAMPLE_RATE,retval);
     
-    retval = rtlsdr_set_center_freq(dev, 145000000);
+    retval = rtlsdr_set_center_freq(dev, TUNED_FREQUENCY);
     if(retval != 0) printf("freqset= %d\n",retval);
     
     retval = rtlsdr_set_tuner_gain_mode(dev, 0);
@@ -86,6 +86,8 @@ int init_rtlsdr()
 
     retval = rtlsdr_reset_buffer(dev);
     if(retval != 0) printf("rtlsdr_reset_buffer= %d\n",retval);
+    
+    printf("=== [R82XX] PLL locked, OK ===\n");
     
     // start capture process
     // this process ONLY reads data from the RTLSDR device
@@ -117,7 +119,7 @@ void rtlsdrCallback(unsigned char *buf, uint32_t len, void *ctx)
         printf("error: data len too long %d\n",len);
         return;
     }
-    write_pipe(0, buf, len);
+    write_pipe(FIFO_RTL, buf, len);
 }
 
 void *rtldevproc(void *pdata)
@@ -155,7 +157,7 @@ int ret;
             printf("%d\n",maxn);
         }*/
         
-        ret = read_pipe_wait(0, buf, SAMPLES_PER_PASS);
+        ret = read_pipe_wait(FIFO_RTL, buf, SAMPLES_PER_PASS);
         if(ret)
         {
             int dstlen = 0;

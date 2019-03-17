@@ -1,2 +1,3 @@
-int play_samples(double *samp, int len);
-void init_soundcard(char *sndcard, unsigned int rate);
+int play_samples(short *samples, int len);
+int init_soundcard(char *sndcard);
+void init_soundprocessing();

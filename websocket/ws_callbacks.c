@@ -36,6 +36,8 @@
 #include <string.h>
 #include "websocketserver.h"
 #include "../setqrg.h"
+#include "../playSDRweb.h"
+#include "../fifo.h"
 
 // a new browser connected
 void onopen(int fd)
@@ -64,26 +66,19 @@ void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1)
     {
         if(actsock[i].socket == fd)
         {
-            // this is our entry in the socket table
-            if(actsock[i].send0 == 1)
+            // send all available data in one frame
+            // (sending is multiple frames resulted in data loss)
+            int len;
+            unsigned char *p = ws_build_txframe(i,&len);
+            if(p != NULL)
             {
-                // there is something to be sent
-                unsigned char pixdata[MESSAGE_LENGTH * 2];
-
-                memcpy(pixdata, actsock[i].msg0+1, actsock[i].msglen0-1);
-                int len = actsock[i].msglen0-1;
-                
-                if(actsock[i].send1 == 1)
-                {
-                    memcpy(pixdata + len, actsock[i].msg1, actsock[i].msglen1);
-                    len += actsock[i].msglen1;
-                }
-                
-                ws_sendframe_binary(fd, pixdata, len);
+                //if(len > 16000) printf("len:%d\n",len);
+                ws_sendframe_binary(fd, p, len);
+                free(p);
                 actsock[i].send0 = 0;
                 actsock[i].send1 = 0;
-                return;
             }
+            return;
         }
     }
 }

@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+        <script src="pcmplayer.js"></script>
         <style>
 
 body { 
@@ -343,7 +344,7 @@ canvas {
                             [	 1.0	,	0.0	,	0.0	]
             ];
             
-            window.onload = start;
+            window.onload = onstart;
             
             var intv;
             var interval;
@@ -359,13 +360,15 @@ canvas {
             var vertlines = 1;
             var vertmarker = 1;
             var ssbmode = 0;
-            var bandsel = 6;
             
             var start1 = 0;
             var end1 = 0;
             var tuneqrg1 = 0;
             var foffset1 = 0;
             var resolution1 = 1;
+            
+            var player;
+            var playON = 0;
             
             function MouseWheelHandler(e)
             {
@@ -387,8 +390,19 @@ canvas {
                 var rect = document.getElementById("wf_overlay").getBoundingClientRect();
                 websocket.send("mousepo:"+ (xpos - rect.left) + "\0");
             }
+            
+            function audioON()
+            {
+                player = new PCMPlayer({
+                        encoding: '16bitInt',
+                        channels: 1,
+                        sampleRate: 8000,
+                        flushingTime: 500
+                });
+                playON = 1;
+            }
 
-            function start()
+            function onstart()
             {
                 setListboxes();
                 
@@ -747,6 +761,66 @@ canvas {
                 context.stroke();
             }
 
+            function get32(myarr)
+            {
+                var val = myarr[0];
+                val <<= 8;
+                val += myarr[1];
+                val <<= 8;
+                val += myarr[2];
+                val <<= 8;
+                val += myarr[3];
+                return val;
+            }
+            
+            function handle_type(type,arr,pos,len)
+            {
+                if(type == 0 && reload)
+                {
+                    var idx = pos+2;
+                    start = get32(arr.slice(idx));
+                    end = get32(arr.slice(idx+4));
+                    tuneqrg = get32(arr.slice(idx+8));
+                    resolution = get32(arr.slice(idx+12));
+                    foffset = get32(arr.slice(idx+16));
+                    pix  = arr.slice(idx+20);
+                    pixwidth = (end - start) / resolution;
+                    
+                    $("#tuneinfo").html("listening on " + (tuneqrg + start + foffset)/1e6 + " MHz");
+                    
+                    drawWFtitle("wf_title",tuneqrg+start,tuneqrg+end,resolution);
+                    drawWF();
+                    draw_tune();
+                    reload = 0;
+                }
+                
+                if(type == 1)
+                {
+                    var idx = pos + 2;
+                    start1 = get32(arr.slice(idx));
+                    end1 = get32(arr.slice(idx+4));
+                    tuneqrg1 = get32(arr.slice(idx+8));
+                    resolution1 = get32(arr.slice(idx+12));
+                    foffset1 = get32(arr.slice(idx+16));
+                    pix1  = arr.slice(idx+20);
+                    pixwidth1 = (end - start) / resolution;
+                    
+                    //$("#tuneinfo").html(arr.length + " info1: " + start1 + " " + end1 + " " + resolution1);
+                    
+                    drawWFtitle("wf_title1",tuneqrg1+start1,tuneqrg1+end1,resolution1);
+                    drawWF1();
+                    drawConnect();
+                    drawOverlay();
+                }
+
+                if(type == 2)
+                {
+                    if(playON == 1)
+                    {
+                        player.feed(arr.slice(pos,pos+len));
+                    }
+                }
+            }
 
             function openWebSocket()
             {
@@ -759,6 +833,7 @@ canvas {
                     sockOpen = 1;
                     $("#status").html("Connected to stream: " + window.location.hostname);
                     //alert("WebSocket is now OPEN");
+                    websocket.send("ssbmode:"+ ssbmode + "\0");
                 };
 
                 websocket.onerror = function () {
@@ -775,71 +850,38 @@ canvas {
 
                 websocket.onmessage = function (message) 
                 {
-                    if(reload)
-                    {
-                        reload = 0;
-                        
-                        function get32(myarr)
-                        {
-                            var val = myarr[0];
-                            val <<= 8;
-                            val += myarr[1];
-                            val <<= 8;
-                            val += myarr[2];
-                            val <<= 8;
-                            val += myarr[3];
-                            return val;
-                        }
-                        
-                        var arr = new Uint8Array(message.data);
-                        if(arr[0] == 0)
-                        {
-                            var idx = 1;
-                            start = get32(arr.slice(idx));
-                            end = get32(arr.slice(idx+4));
-                            tuneqrg = get32(arr.slice(idx+8));
-                            resolution = get32(arr.slice(idx+12));
-                            foffset = get32(arr.slice(idx+16));
-                            pix  = arr.slice(idx+20);
-                            pixwidth = (end - start) / resolution;
-                            
-                            $("#tuneinfo").html("listening on " + (tuneqrg + start + foffset)/1e6 + " MHz");
-                            
-                            drawWFtitle("wf_title",tuneqrg+start,tuneqrg+end,resolution);
-                            drawWF();
-                            draw_tune();
-                        }
-                        if(arr.length > 2000)
-                        {
-                            var idx = 1023;
-                            start1 = get32(arr.slice(idx));
-                            end1 = get32(arr.slice(idx+4));
-                            tuneqrg1 = get32(arr.slice(idx+8));
-                            resolution1 = get32(arr.slice(idx+12));
-                            foffset1 = get32(arr.slice(idx+16));
-                            pix1  = arr.slice(idx+20);
-                            pixwidth1 = (end - start) / resolution;
-                            
-                            //$("#tuneinfo").html(arr.length + " info1: " + start1 + " " + end1 + " " + resolution1);
-                            
-                            drawWFtitle("wf_title1",tuneqrg1+start1,tuneqrg1+end1,resolution1);
-                            drawWF1();
-                            drawConnect();
-                            drawOverlay();
-                        }
+                    var arr = new Uint8Array(message.data);
+                    // handle first element
+                    var pos = 0;
+                    var type = arr[pos++];
+                    var len = (arr[pos++] << 8);
+                    len += arr[pos++];
+                    
+                    handle_type(type,arr,pos,len);
+                    pos += len;
 
-                        // remark: window.requestAnimationFrame(drawWF); do NOT use this, high CPU load and corrupts picture if in background
+                    if(arr.length > pos)
+                    {
+                        // handle second element
+                        var type = arr[pos++];
+                        var len = (arr[pos++] << 8);
+                        len += arr[pos++];
+                        handle_type(type,arr,pos,len);
+                        pos += len;
                     }
+
+                    if(arr.length > pos)
+                    {
+                        // handle 3rd element
+                        var type = arr[pos++];
+                        var len = (arr[pos++] << 8);
+                        len += arr[pos++];
+                        handle_type(type,arr,pos,len);
+                    }
+                    // remark: window.requestAnimationFrame(drawWF); do NOT use this, high CPU load and corrupts picture if in background*/
                 };
-                // send something to server
-                // add this line into the form: <button id="but1">click</button>
-                $('#but1').click(function(e) {
-                    e.preventDefault();
-                    websocket.send("test");
-                    document.getElementById('header_subtitle').innerHTML = "huhu";
-                    //$('input').val('');
-                });
                 
+                // store settings and send to server
                 $('#color').click(function(e) {
                     e.preventDefault();
                     wfcolor = $(this).children("option:selected").val();
@@ -872,18 +914,11 @@ canvas {
                     localStorage.setItem('ymarker',vertmarker);
                 });
 
-                $('#bandsel').click(function(e) {
-                    e.preventDefault();
-                    bandsel = Number($(this).children("option:selected").val());
-                    localStorage.setItem('bandsel',bandsel);
-                    websocket.send("bandsel:"+ bandsel);
-                });
-
                 $('#ssbmode').click(function(e) {
                     e.preventDefault();
                     ssbmode = Number($(this).children("option:selected").val());
                     localStorage.setItem('ssbmode',ssbmode);
-                    websocket.send("ssbmode:"+ ssbmode);
+                    websocket.send("ssbmode:"+ ssbmode + "\0");
                 });
             }
             
@@ -928,13 +963,6 @@ canvas {
                 {
                     vertmarker = v;
                     $('#ymarker').val(vertmarker);
-                }
-                    
-                v = localStorage.getItem('bandsel');
-                if(v != null)
-                {
-                    bandsel = v;
-                    $('#bandsel').val(bandsel);
                 }
                     
                 v = localStorage.getItem('ssbmode');
@@ -993,26 +1021,8 @@ canvas {
                 <option value="0">LSB</option>
                 <option value="1">USB</option>
             </select>
-            <select id="bandsel" class="selectbox" name="bandsel">
-                <option value="0">2200m</option>
-                <option value="1">630m</option>
-                <option value="2">80m</option>
-                <option value="3">60m</option>
-                <option value="4">40m</option>
-                <option value="5">30m</option>
-                <option value="6">20m</option>
-                <option value="7">17m</option>
-                <option value="8">15m</option>
-                <option value="9">12m</option>
-                <option value="10">10m</option>
-                <option value="11">6m</option>
-                <option value="12">4m</option>
-                <option value="13">2m</option>
-                <option value="14">70cm</option>
-                <option value="15">23cm</option>
-                <option value="16">es'hail-2</option>
-            </select>
         </form>
+        <button onclick="audioON()">AUDIO ON</button>
         <br>
         <div id="status" class="status">Status</div>
         <div id="tuneinfo" class="tuneinfo">Tuner</div>

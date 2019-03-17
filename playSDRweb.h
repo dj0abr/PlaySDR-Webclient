@@ -25,6 +25,8 @@
 * 
 */
 
+#define SDR_PLAY
+
 // sample rate of the SDRplay hardware
 // see the possible values in the SDRplay driver
 // high values will generate a high CPU load !
@@ -37,9 +39,9 @@
 // (the following alternatives are integer numbers if the sampling rate is 2.4MS/s)
 // !!! if the SDR_SAMPLE_RATE is changes, these values must be recalculated !!! (see also SSB_RATE below)
 // #define WF_RANGE_HZ        400000       // (first downsampled rate: 800000)
-//#define WF_RANGE_HZ        300000       // (first downsampled rate: 600000)
+#define WF_RANGE_HZ        300000       // (first downsampled rate: 600000)
 //#define WF_RANGE_HZ        240000       // (first downsampled rate: 480000)
-#define WF_RANGE_HZ        200000       // (first downsampled rate: 400000) 
+//#define WF_RANGE_HZ        200000       // (first downsampled rate: 400000) 
 // #define WF_RANGE_HZ        150000       // (first downsampled rate: 300000)
 // #define WF_RANGE_HZ        120000       // (first downsampled rate: 240000)
 //#define WF_RANGE_HZ        100000       // (first downsampled rate: 200000)
@@ -60,7 +62,7 @@
 // this is similar to the left margin of the big waterfall picture
 // and therefore should be the lowest frequency of interest (i.e. beginning of a band)
 // for the Sat es'hail 2 this should be: 10489500000 Hz (= 10.4895 GHz)
-#define TUNED_FREQUENCY     145000000     // 40 band
+#define TUNED_FREQUENCY     739525000
 
 // Websocket Port
 // the computer running this software must be reachable under this port
@@ -84,29 +86,41 @@
 // assign the SSB audio rate for above WF_RANGE_HZ values
 // !!! if the SDR_SAMPLE_RATE is changes, these values must be recalculated !!!
 #define DEFAULT_SSB_RATE    48000
+#define DEFAULT_AUDIO_RATE  8000
 
 #if WF_RANGE_HZ == 400000
     #define SSB_RATE 40000
+    #define AUDIO_RATE 8000
     
 #elif WF_RANGE_HZ == 300000
     #define SSB_RATE 40000
+    #define AUDIO_RATE 8000
     
 #elif WF_RANGE_HZ == 200000
     #define SSB_RATE 40000
+    #define AUDIO_RATE 8000
     
 #elif WF_RANGE_HZ == 150000
     #define SSB_RATE 37500
+    #define AUDIO_RATE 7500
     
 #elif WF_RANGE_HZ == 100000
     #define SSB_RATE 40000
+    #define AUDIO_RATE 8000
 #else
     #define SSB_RATE DEFAULT_SSB_RATE  // use default rate if possible
+    #define AUDIO_RATE DEFAULT_AUDIO_RATE
 #endif
 
-#define SSB_DECIMATE    (SAMPLERATE_FIRST / SSB_RATE)
-#define FFT_RESOLUTION_SMALL (SSB_RATE / 2 / WF_WIDTH)
-#define SAMPLES_FOR_FFT_SMALL     (SSB_RATE / FFT_RESOLUTION_SMALL)
+#define SSB_DECIMATE            (SAMPLERATE_FIRST / SSB_RATE)
+#define FFT_RESOLUTION_SMALL    (SSB_RATE / 2 / WF_WIDTH)
+#define SAMPLES_FOR_FFT_SMALL   (SSB_RATE / FFT_RESOLUTION_SMALL)
+#define AUDIO_DECIMATE          (SSB_RATE / AUDIO_RATE)
 
 // for the RTLSDR only !
 // samples per callback
 #define SAMPLES_PER_PASS    512*8 // must be a multiple of 512
+
+
+extern int hwtype;
+extern int samplesPerPacket;

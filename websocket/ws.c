@@ -298,7 +298,6 @@ static void* ws_establishconnection(void *vsock)
 	sock = (int)(intptr_t)vsock;
 
 	/* Receives message until get some error. */
-	//while( (n = read(sock, frm, sizeof(unsigned char) * MESSAGE_LENGTH)) > 0 )
 	while((n=readsocket(sock, frm, sizeof(unsigned char) * MESSAGE_LENGTH)) >= 0)
 	{
         if(n > 0)
@@ -352,7 +351,7 @@ static void* ws_establishconnection(void *vsock)
         {
             // no data received, normal processing loop
             events.onwork(sock,&cnt0,&cnt1);
-            usleep(10000);      // do not eat up the CPU time
+            //usleep(1000);      // do not eat up the CPU time
         }
 	}
 
@@ -420,7 +419,6 @@ int ws_socket(struct ws_events *evs, int port)
 			perror("Error on accepting conections..");
 			exit(-1);
 		}
-		printf("==*===\n");
 
 		pthread_t client_thread;
 		if ( pthread_create(&client_thread, NULL, ws_establishconnection, (void*)(intptr_t) new_sock) < 0)

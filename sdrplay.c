@@ -46,7 +46,6 @@ int gainR = 50;
 int bwkHz = 1536;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
 int ifkHz = 0;      // 0 is used in this software
 int rspLNA = 0;
-int samplesPerPacket;
 void *cbContext = NULL;
 int agcControl = 1;
 long setPoint = -30;
