@@ -29,9 +29,10 @@ working with the playSDR and the RTLsdr stick (and compatibles)
 3) copy the html file to your web server directory (i.e. /var/www/html)
    the web server must be running
 3) open a web browser and open the html web site
+4) the waterfall muss be running. Click into the big waterfall the select the listening frequency. The base frequency is set in playSDRweb.h
+5) click the "Audio ON" button
 
-the waterfall muss be running. Click into the big waterfall the select the listening frequency.
-The base frequency is set in playSDRweb.h (the qrg button is not working for now)
+Today Mar,17 2019, this program was used for the first time the listen to es'hail-2
 
 
 Prerequisites:
