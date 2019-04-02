@@ -26,8 +26,9 @@
 
 #include <stdio.h>
 #include "setqrg.h"
-#include "playSDRweb.h"
-#include "downmixer.h"
+#include "playSDReshail2.h"
+#include "sdrplay.h"
+#include "rtlsdr.h"
 
 // 0=do nothing, 1=set to mouse pos 2=increment/decrement
 // 3=set a band, 4=set LSB/USB
@@ -36,34 +37,44 @@ int freqval;        // value for above command
 
 int foffset = 0;    // audio offset to tuned frequency
 int ssbmode = 1;    // 0=LSB 1=USB
+int filtermode = 1; // 0=1,8k 1=2,4k 2=3,6k
+int setrfoffset = 0;
+double newrf = 0;
 
 // called in the main loop
 // checks if a new set-frequency command arrived
 void set_frequency()
 {
-static int first = 1;
-
-    if(first)
-    {
-        // set default after program start
-        downmixer_setFrequency(foffset);
-        first = 0;
-    }
-
     switch (setfreq)
     {
-        case 1: foffset = freqval * FFT_RESOLUTION;
-                printf("new QRG offset: %d\n",foffset);
-                downmixer_setFrequency(foffset);
+        case 1: printf("new QRG offset: %d\n",foffset);
+                foffset = freqval * FFT_RESOLUTION;
                 break;
                 
         case 2: foffset += (freqval * 10);
-                downmixer_setFrequency(foffset);
                 break;
         
         case 4: ssbmode = freqval;
                 printf("set mode: %s\n",ssbmode?"USB":"LSB");
                 break;
+                
+        case 5: filtermode = freqval;
+                printf("set filter: %d\n",filtermode);
+                break;
     }
     setfreq = 0;
+    
+    if(setrfoffset)
+    {
+        if(hwtype == 1)
+        {
+            setTunedQrgOffset(newrf);
+        }
+        
+        if(hwtype == 2)
+        {
+            rtlsetTunedQrgOffset(newrf);
+        }
+        setrfoffset = 0;
+    }
 }

@@ -76,5 +76,3 @@ void createLowPassFIRfilter(double sampleRate, double freq_minus3db, double *pco
     for (int i = 0; i < length; i++) 
         pcoeffs[i] /= sum;
 }
-
-

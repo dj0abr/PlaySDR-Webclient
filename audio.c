@@ -35,7 +35,7 @@
 #include <sys/time.h>
 #include "fifo.h"
 #include "audio.h"
-#include "playSDRweb.h"
+#include "playSDReshail2.h"
 
 void *audioproc(void *pdata);
 void expand_stereo(short *samples, int len);

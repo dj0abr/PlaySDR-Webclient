@@ -30,7 +30,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include "sdrplay.h"
-#include "sampleprocessing.h"
+#include "ssbfft.h"
 #include "mirsdrapi-rsp.h"  // the SDRplay driver must be installed !
 
 int device = 0;     // device number. If we have one SDRplay device connected: device=0
@@ -43,7 +43,7 @@ int notchEnable = 0;
 int biasT = 0;
 mir_sdr_SetGrModeT grMode = mir_sdr_USE_SET_GR_ALT_MODE;
 int gainR = 50;
-int bwkHz = 1536;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
+int bwkHz = 600;   // default BW, possible values: 200,300,600,1536,5000,6000,7000,8000
 int ifkHz = 0;      // 0 is used in this software
 int rspLNA = 0;
 void *cbContext = NULL;
@@ -121,9 +121,12 @@ int init_SDRplay()
         printf("Use -v 1 (for verbose mode) to see the issue.\n");
 		exit(1);
 	}
+	
+	// reduce the sample rate to 600kHz
+	mir_sdr_DecimateControl(1,4,0);
 
     mir_sdr_AgcControl(agcControl, setPoint, 0, 0, 0, 0, rspLNA);
-
+    
     if (devModel == 2) {
         if (refClk > 0) {
             mir_sdr_RSPII_ExternalReferenceControl(1);
@@ -153,6 +156,12 @@ void remove_SDRplay()
     mir_sdr_Uninit();
 }
 
+void setTunedQrgOffset(double hz)
+{
+    mir_sdr_SetRf((double)TUNED_FREQUENCY - hz,1,0);
+    //printf("rf : %f\n",(double)TUNED_FREQUENCY - hz);
+}
+
 /*
  * the SDRplay driver calls this function
  * numSamples ... number of samples included
@@ -163,7 +172,6 @@ void streamCallback(short *xi, short *xq, unsigned int firstSampleNum,
     int grChanged, int rfChanged, int fsChanged, unsigned int numSamples,
     unsigned int reset, unsigned int hwRemoved, void *cbContext)
 {   
-
     /*
      * Testfunction for the sample rate 
      * after a minute the printed value should
@@ -190,7 +198,8 @@ void streamCallback(short *xi, short *xq, unsigned int firstSampleNum,
     */
     
     // call the function to process the new samples (file: sampleprocessing.c)
-    sample_processing(xi, xq, numSamples);
+    //sample_processing(xi, xq, numSamples);
+    fssb_sample_processing(xi, xq, numSamples);
 }
 
 // currently not used
@@ -198,3 +207,4 @@ void gainCallback(unsigned int gRdB, unsigned int lnaGRdB, void *cbContext)
 {
     return;
 }
+
