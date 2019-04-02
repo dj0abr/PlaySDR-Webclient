@@ -37,7 +37,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <pthread.h>
-#include "playSDReshail2.h"
+#include "playSDRweb.h"
+#include "sampleprocessing.h"
 #include "fifo.h"
 
 void *rtldevproc(void *pdata);
@@ -111,14 +112,6 @@ int init_rtlsdr()
     return 1;
 }
 
-void rtlsetTunedQrgOffset(double hz)
-{
-    unsigned long qrg = (unsigned long)(TUNED_FREQUENCY - hz);
-    int retval = rtlsdr_set_center_freq(dev, qrg);
-    if(retval != 0) printf("freqset= %d\n",retval);
-    //printf("rtl rf : %ld\n",qrg);
-}
-
 void rtlsdrCallback(unsigned char *buf, uint32_t len, void *ctx)
 {
     if (len > SAMPLES_PER_PASS) 
@@ -183,7 +176,7 @@ int ret;
                 dstlen++;
             }
             
-            //sample_processing(ibuf, qbuf, dstlen);
+            sample_processing(ibuf, qbuf, dstlen);
         }
     }
        

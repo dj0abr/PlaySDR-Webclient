@@ -43,10 +43,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include "../playSDReshail2.h"
 #include "websocketserver.h"
+#include "../playSDRweb.h"
 #include "../fifo.h"
-#include "../ssbfft.h"
 
 WS_SOCK actsock[MAX_CLIENTS];
 
@@ -123,22 +122,6 @@ void ws_send(unsigned char *pwfdata, int idx, int wf_id)
             }
         }
     }
-    
-    // if we have audio samples in the fifo, then copy it to each clients audio buffer
-    unsigned char samples[AUDIO_RATE*2];
-    int len = read_pipe(FIFO_AUDIOWEBSOCKET, samples, AUDIO_RATE*2);
-    if(len)
-    {
-        for(int i=0; i<MAX_CLIENTS; i++)
-        {
-            if(actsock[i].socket != -1)
-            {
-                memcpy(actsock[i].samples,samples,AUDIO_RATE*2);
-                actsock[i].sendaudio = 1;
-            }
-        }
-    }
-    
     UNLOCK;
 }
 
@@ -146,20 +129,20 @@ unsigned char *ws_build_txframe(int i, int *plength)
 {
     LOCK;
     
-    if(actsock[i].sendaudio == 1)
+    unsigned char samples[AUDIO_RATE*2];
+    int len = read_pipe(FIFO_AUDIOWEBSOCKET, samples, AUDIO_RATE*2);
+    if(len)
     {
         int idx = 0;
-        int len = AUDIO_RATE*2;
         unsigned char *txdata = malloc(len+3);
         //printf("audio:%d\n",len);
         txdata[idx++] = 2;    // type of audio samples
         txdata[idx++] = len >> 8;
         txdata[idx++] = len & 0xff;
-        memcpy(txdata+idx,actsock[i].samples,len);
+        memcpy(txdata+idx,samples,len);
         idx += len;
 
         *plength = idx;
-        actsock[i].sendaudio = 0;
         UNLOCK;
         return txdata;
     }
@@ -187,8 +170,6 @@ unsigned char *ws_build_txframe(int i, int *plength)
         txdata[idx++] = actsock[i].msglen0 >> 8;
         txdata[idx++] = actsock[i].msglen0 & 0xff;
         memcpy(txdata+idx,actsock[i].msg0,actsock[i].msglen0);
-        // first WF byte is used as RF-lock indicator
-        txdata[idx] = rflock;
         idx += actsock[i].msglen0;
     }
     
@@ -200,7 +181,18 @@ unsigned char *ws_build_txframe(int i, int *plength)
         memcpy(txdata+idx,actsock[i].msg1,actsock[i].msglen1);
         idx += actsock[i].msglen1;
     }
-
+    
+/*    if(len > 0)
+    {
+        //printf("audio:%d\n",len);
+        txdata[idx++] = 2;    // type of audio samples
+        txdata[idx++] = len >> 8;
+        txdata[idx++] = len & 0xff;
+        memcpy(txdata+idx,samples,len);
+        idx += len;
+    }*/
+    
+    
     *plength = idx;
     
     UNLOCK;

@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include <stdint.h>
-#include "../playSDReshail2.h"
 
 #define MESSAGE_LENGTH 30000
 #define MAX_CLIENTS    20
@@ -38,8 +37,6 @@ typedef struct {
     int msglen1;
     int send0;       // 0=nothing to send, 1=send now
     int send1;
-    unsigned char samples[AUDIO_RATE*2];
-    int sendaudio;
 } WS_SOCK;
 
 // Events

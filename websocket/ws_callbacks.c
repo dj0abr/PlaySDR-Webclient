@@ -36,6 +36,7 @@
 #include <string.h>
 #include "websocketserver.h"
 #include "../setqrg.h"
+#include "../playSDRweb.h"
 #include "../fifo.h"
 
 // a new browser connected
@@ -71,6 +72,7 @@ void onwork(int fd, unsigned char *cnt0, unsigned char *cnt1)
             unsigned char *p = ws_build_txframe(i,&len);
             if(p != NULL)
             {
+                //if(len > 16000) printf("len:%d\n",len);
                 ws_sendframe_binary(fd, p, len);
                 free(p);
                 actsock[i].send0 = 0;
@@ -106,11 +108,6 @@ void onmessage(int fd, unsigned char *msg)
     {
         freqval = atoi((char *)msg+8);
         setfreq = 4;
-    }
-    if(strstr((char *)msg,"filterw:"))
-    {
-        freqval = atoi((char *)msg+8);
-        setfreq = 5;
     }
 	
 	free(cli);

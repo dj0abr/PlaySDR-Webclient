@@ -43,7 +43,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
 #include <gd.h>
 #include "gdfontt.h"
 #include "gdfonts.h"
@@ -51,6 +50,7 @@
 #include "gdfontl.h"
 #include "gdfontg.h"
 #include "wf_univ.h"
+#include "fft.h"
 #include "color.h"
 #include "websocketserver.h"
 #include "setqrg.h"
@@ -58,7 +58,6 @@
 void drawWFimage(int id, gdImagePtr im, char *fn);
 void drawFFTline(int id, gdImagePtr dst);
 void drawQrgTitles(int id, gdImagePtr dst);
-void scaleSamples(double *samples, int numSamples);
 
 typedef struct {
     int dg_first;
@@ -202,13 +201,13 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         wfdata[idx++] = foffset >> 8;
         wfdata[idx++] = foffset;
 
+        // calculate pixel colors
+        calcColorParms(id,left,right,fdata); 
+        
         // draw pixel per pixel
         for(int i=left; i<right; i++)
         {
-            //printf("%.0f %d %d\n",fdata[i],left,right);
-            // fdata is the dbm value of the received signal, a negative number
-            // put it into the data string as positive numer
-            wfdata[idx] = (unsigned char)(-fdata[i]);
+            wfdata[idx] = getPixelColor(id,fdata[i]);
             idx++;
             if(idx >= sizeof(wfdata))
                 break;
@@ -216,6 +215,7 @@ void drawWF(int id, double *fdata, int cnt, int wpix, int hpix, int _leftqrg, in
         
         // wfdata with length cnt is now filled with data
         // give it to the WebSocket Server
+
         ws_send(wfdata,idx,id);
     }
 }
@@ -321,63 +321,8 @@ char s[50];
             // scale the frequency to pixel position
             int xs = ((i-left)*wfvars[id].pic_width)/width;
             
-            sprintf(s,"%.6f",(double)((double)wfvars[id].tunedQRG + i*(double)wfvars[id].resolution)/1e3);
+            sprintf(s,"%.6f",(double)((double)wfvars[id].tunedQRG + i*(double)wfvars[id].resolution)/1e6);
             gdImageString (dst,gdFontGetSmall(),xs-25,2,(unsigned char *)s,253);
         }
-    }
-}
-
-/*
- * scale FTT values
- * 
- * a change of 6 dBm at the antenna input must result in *2 or /2 of
- * the spectrum needle.
- * To match the FFT output with this requirement we must
- * use a log(base 1,122). I don't know why this works, but I have
- * carefully tested and simulated this formula.
- * 
- * Overwrites "samples" !
- * */
-
-// calibration value to match the spectrum display to the antenna input
-double refminus80dBm = 0;
-
-void scaleSamples(double *samples, int numSamples)
-{
-    double log1122 = log(1.122);
-    double maxval = (double)(log(32768.0*(double)numSamples) / log1122);
-    
-    for(int i=0; i<numSamples; i++)
-    {
-        double dval = samples[i];
-        
-        // a log of 0 is not possible, so make it to 1
-        if (dval < 1) dval = 1;    
-        
-        // this formula is a log to the base of 1.122
-        dval = (double)(log(dval) / log1122);
-        
-        /*
-         * lowest value:
-         *  the lowest FFT output value may be 0 (corrected to 1 above), 
-         *  the result of the log is 1
-         * highers value:
-         *  the max. value of the FFT output can be 32768*(uFFT_rate/2)
-         * 
-         * Example: uFFT_rate = 48k, maxVal=786.432.000
-         * the above log results in: 178
-         * therefore: the maximum dynamic range in this case is 178 dBm
-         * */
-        
-        // turn into a negative dBm value
-        dval = dval - maxval;
-        
-        // at this point "dval" matches the dBm value at the antenna input
-        // but we need to add a correction value which has to be calibrated
-        // at -80dBm. 
-        // !!! all this works ONLY if the receiver AGC is switched OFF !!!
-        dval += refminus80dBm;
-
-        samples[i] = dval;
     }
 }
